@@ -18,9 +18,9 @@ To generate HI mock in redshift space run the following:
 
 ``python Hi-Fi_redshift_space.py``
 
-For the fiducial parameters (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `nbar=1`), each code finishes in ~2 minutes on a typical laptop. The codes output the final HI overdensity field to the outputs_folder and create two figures with the the overdensity slice and the measured power spectra.
+The parameters for each run: `BoxSize`, `Nmesh`, initial condition `seed`, resolution etc. can be set within the main codes. Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fit is tuned to available scales of TNG300 (k in 0.03-1 h/Mpc) and limited to output redshifts of z=0 & 1.
 
-The parameters for each run (`BoxSize`, `Nmesh`, initial condition `seed`, resolution) can be set within these two codes. Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fit is tuned to available scales of TNG300 (k in 0.03-1 h/Mpc) and limited to output redshifts of z=0 & 1.
+For the fiducial parameters (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `nbar=1`), each code finishes in ~2 minutes on a typical laptop. The codes output the final HI overdensity field, figure with smoothed overdensity slice and the measured power spectra directly to the `outputs_folder`.
 
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
