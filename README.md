@@ -23,4 +23,4 @@ The parameters for each run (`BoxSize`, `Nmesh`, initial condition `seed`, resol
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
 
-Acknowledgement: Parts of our code uses scripts from [perr](https://github.com/mschmittfull/perr) and [lsstools](https://github.com/mschmittfull/lsstools).
+Acknowledgement: Parts of our code uses scripts from [lsstools](https://github.com/mschmittfull/lsstools).
