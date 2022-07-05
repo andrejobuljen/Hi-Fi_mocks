@@ -1,6 +1,6 @@
 # Hi-Fi mocks
 
-Code to generate fast HI field-level (Hi-Fi) mocks
+Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 ## About
 
