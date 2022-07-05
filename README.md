@@ -8,7 +8,7 @@ Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshi
 
 ## Usage
 
-'hifi mocks' code is based on the [nbodykit](github.com/bccp/nbodykit) package. To install `nbodykit` please follow these installation [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html).
+'hi-fi mocks' code is based on [nbodykit](https://github.com/bccp/nbodykit) package. To install `nbodykit` please follow these installation [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html).
 
 To generate HI mock in real space run the following:
 
