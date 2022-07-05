@@ -8,7 +8,9 @@ Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshi
 
 ## Usage
 
-`Hi-Fi mocks` are based on and require [nbodykit](https://github.com/bccp/nbodykit) package. To install `nbodykit` please follow these [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html).
+`Hi-Fi mocks` are based on and require [nbodykit](https://github.com/bccp/nbodykit) package. To install `nbodykit` please follow these [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html). 
+
+Once installed, also install `matplotlib` package by running: `conda install matplotlib`.
 
 To generate HI mock in real space run the following:
 
