@@ -1,2 +1,12 @@
-# hifi_mocks
+# HI-field (HI-fi) mocks
+
 Code to generate fast HI 3D field-level mocks
+
+## About
+
+Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of Illustris TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks. The code is accompanying the paper: arxivXXXX. It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [Schmittfull+19](https://arxiv.org/abs/2012.03334).
+
+## Usage
+
+'hifi mocks' code is based on the [nbodykit](github.com/bccp/nbodykit) package. To install `nbodykit` please follow these installation [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html).
+
