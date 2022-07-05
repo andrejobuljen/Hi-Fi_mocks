@@ -4,7 +4,7 @@ Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 ## About
 
-Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris TNG300-1](https://www.tng-project.org) (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks. This code is accompanying the paper: arXiv:XXXX. It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [Schmittfull+19](https://arxiv.org/abs/2012.03334).
+Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks. This code is accompanying the paper: arXiv:XXXX. It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [Schmittfull+19](https://arxiv.org/abs/2012.03334).
 
 ## Usage
 
