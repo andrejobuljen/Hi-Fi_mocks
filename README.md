@@ -25,4 +25,4 @@ For the fiducial parameters (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `nbar=1`), each
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
 
-Acknowledgement: Parts of our code uses scripts from [lsstools](https://github.com/mschmittfull/lsstools).
+#### Acknowledgement: Parts of our code uses scripts from [lsstools](https://github.com/mschmittfull/lsstools).
