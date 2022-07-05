@@ -19,6 +19,6 @@ To generate HI mock in redshift space run the following:
 
 ``python hi-fi_redshift_space.py``
 
-The parameters for each run (`BoxSize`, `Nmesh`, IC `seed`, resolution) can be set within these codes.
+The parameters for each run (`BoxSize`, `Nmesh`, IC `seed`, resolution) can be set within these two codes.
 
-Based on given initial conditions (IC) seed and output redshift these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fit is tuned to avaialable scales of TNG300 (k in 0.03-1 h/Mpc) and output redshifts of $z=0 \& 1$.
+Based on given initial conditions (IC) seed and output redshift these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fit is tuned to avaialable scales of TNG300 (k in 0.03-1 h/Mpc) and output redshifts 0 & 1.
