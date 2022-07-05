@@ -12,11 +12,11 @@ Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshi
 
 To generate HI mock in real space run the following:
 
-``python Hi-Fi_real_space.py``
+``python Hi-Fi_mock_real_space.py``
 
 To generate HI mock in redshift space run the following:
 
-``python Hi-Fi_redshift_space.py``
+``python Hi-Fi_mock_redshift_space.py``
 
 The parameters for each run: `BoxSize`, `Nmesh`, initial condition (IC) `seed`, resolution etc. can be set within the main codes. Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fit is tuned to available scales of TNG300 (k in 0.03-1 h/Mpc) and limited to output redshifts of z=0 & 1.
 
