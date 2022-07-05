@@ -1,6 +1,6 @@
-# HI-field (HI-fi) mocks
+# hi-fi mocks
 
-Code to generate fast HI 3D field-level mocks
+Code to generate fast HI 3D field-level (hi-fi) mocks
 
 ## About
 
@@ -10,3 +10,16 @@ Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshi
 
 'hifi mocks' code is based on the [nbodykit](github.com/bccp/nbodykit) package. To install `nbodykit` please follow these installation [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html).
 
+### Real space
+
+To generate HI mock in redshift space run the following:
+
+``python HI-fi_real_space.py``
+
+### Redshift space
+
+To generate HI mock in redshift space run the following:
+
+``python HI-fi_redshift_space.py``
+
+The parameters for the run (`BoxSize`, `Nmesh`, IC `seed`, resolution) can be set within these codes.
