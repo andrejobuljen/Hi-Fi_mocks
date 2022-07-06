@@ -975,7 +975,9 @@ def rsd_polynomial_field(dz, d1, d2ort, dG2ort, dG2par, d3ort, path, zout, p1, f
 
     return final_field_poly
 
-def noise(zout, Nmesh, BoxSize, noise_seed = 12):
+def noise(zout, Nmesh, BoxSize):
+
+    noise_seed = np.random.randint(0,1000000)
 
     pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize)
     wn = pm.generate_whitenoise(noise_seed)
@@ -990,7 +992,9 @@ def noise(zout, Nmesh, BoxSize, noise_seed = 12):
 
     return wn.apply(lambda k, val: Perr_level(sum(ki ** 2 for ki in k)**0.5) ** 0.5 * val / val.BoxSize.prod() ** 0.5)
 
-def noise_kmu(zout, Nmesh, BoxSize, axis, fout, path, noise_seed = 12):
+def noise_kmu(zout, Nmesh, BoxSize, axis, fout, path):
+
+    noise_seed = np.random.randint(0,1000000)
 
     pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize)
     wn = pm.generate_whitenoise(noise_seed)
