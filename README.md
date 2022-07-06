@@ -14,7 +14,7 @@ After succesfully installing `nbodykit` and `matplotlib`, download `Hi-Fi mocks`
 
 `git clone https://github.com/andrejobuljen/Hi-Fi_mocks.git`
 
-Enter the folder `Hi-fi_mocks`: `cd Hi-fi_mocks` and follow the next steps. In order to use this code from outside its folder, add `Hi-Fi mocks` root directory to your `PYTHONPATH` by running: `export PYTHONPATH=/path/to/HI-Fi_mocks:$PYTHONPATH`.
+Enter the folder `Hi-fi_mocks`: `cd Hi-fi_mocks` and follow the next steps. In order to use this code from outside its folder, add `Hi-Fi mocks` folder to your `PYTHONPATH` by running in terminal: `export PYTHONPATH=/path/to/HI-Fi_mocks:$PYTHONPATH`.
 
 To generate HI mock in real space run the following:
 
