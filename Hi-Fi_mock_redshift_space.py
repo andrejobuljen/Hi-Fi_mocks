@@ -20,7 +20,10 @@ nbar = 1 # Npart/BoxSize^3 [(Mpc/h)^-3]
 zout = 1 # output redshift
 
 axis = 2 # coordinate axis along which RSDs have been applied; matching z-axis, los=[0,0,1]
-Nmufid = 6 # number of mu bins for nbodykit FFTPower, actually 2x the number of (positive) mu bins
+Nmufid = 6 # number of mu bins for nbodykit FFTPower, this is actually 2x the number of (positive) mu bins
+
+print ("Generating HI mock in redshift-space at output redshift z=%.0f, in a BoxSize L=%.1f using nbar=%.2f (%i particles) on a Nmesh=%i^3 grid with IC seed %i..."\
+		%(zout, BoxSize, nbar, int(nbar*BoxSize**3), Nmesh, seed))
 
 # Cosmology and parameters
 c = cosmology.Planck15
@@ -44,31 +47,42 @@ if not os.path.exists(output_folder):
 #################
 
 # Generate linear overdensity field at zic
+print ('Generating initial density field... ')
 dlin = get_dlin(seed, Nmesh, BoxSize, Plin_z0)
 dlin *= Dic
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Compute shifted fields
+print ('Computing shifted fields... ')
 dz, d1, d2, dG2, dG2par, d3 = generate_fields_rsd(dlin, c, nbar, zic, zout, fout)
 p1 = FFTPower(d1, mode='2d', kmin=kmin, Nmu=Nmufid, poles=[0,2])
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Orthogonalize shifted fields
+print ('Orthogonalizing shifted fields... ')
 d2, dG2, d3 = orthogonalize_rsd(d1, d2, dG2, d3, Nmufid)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Generate 3D HI fields
+print ('Generating polynomial field... ')
 HI_field_poly = rsd_polynomial_field(dz, d1, d2, dG2, dG2par, d3, params_path, zout, p1, fout)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Add Perr(k,mu) noise:
+print ('Adding noise... ')
 HI_field_poly += noise_kmu(zout, Nmesh, BoxSize, axis, fout, params_path)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
+print ('Saving HI field... ')
 if save_outputs: ArrayMesh(HI_field_poly, BoxSize).save(output_folder+"rsd_HI_field_poly_TNG300_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i"%(BoxSize,nbar,zout,seed))
-
-print ("time taken %.1f sec."%(time.time()-start))
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 ################
 ### Plotting ###
 ################
 
 if plot:
+	print ('Plotting and computing power spectra ... ')
 	# load
 	HI_field_poly = BigFileMesh(output_folder+"rsd_HI_field_poly_TNG300_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i"%(BoxSize,nbar,zout,seed), dataset='Field')
 
@@ -105,3 +119,7 @@ if plot:
 	if save_outputs:
 		plt.savefig(output_folder + "rsd_Pks_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i.pdf"%(BoxSize,nbar,zout,seed))
 	plt.close()
+	print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
+
+print ("Total time taken: %.1f sec."%(time.time()-start))
+
