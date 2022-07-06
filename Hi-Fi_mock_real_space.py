@@ -19,6 +19,9 @@ Nmesh=256
 nbar = 1 # Npart/BoxSize^3 [(Mpc/h)^-3]
 zout = 1 # output redshift
 
+print ("Generating HI mock in real-space at output redshift z=%.0f, in a BoxSize L=%.1f using nbar=%.2f (%i particles) on a Nmesh=%i^3 grid with IC seed %i..."\
+		%(zout, BoxSize, nbar, int(nbar*BoxSize**3), Nmesh, seed))
+
 # Cosmology
 c = cosmology.Planck15
 c = c.match(sigma8=0.8159)
@@ -40,31 +43,42 @@ if not os.path.exists(output_folder):
 #################
     
 # Generate linear overdensity field at zic
+print ('Generating initial density field... ')
 dlin = get_dlin(seed, Nmesh, BoxSize, Plin_z0)
 dlin *= Dic
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Compute shifted fields
+print ('Computing shifted fields... ')
 d1, d2, dG2, d3 = generate_fields(dlin, c, nbar, zic, zout)
 p1 = FFTPower(d1, mode='1d', kmin=kmin)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Orthogonalize shifted fields
+print ('Orthogonalizing shifted fields... ')
 d2, dG2, d3 = orthogonalize(d1, d2, dG2, d3)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Generate 3D HI fields and save outputs
+print ('Generating polynomial field... ')
 HI_field_poly = polynomial_field(d1, d2, dG2, d3, params_path, zout, p1)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Add isotropic stochastic noise:
+print ('Adding noise... ')
 HI_field_poly += noise(zout, Nmesh, BoxSize)
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
+print ('Saving HI field... ')
 if save_outputs: ArrayMesh(HI_field_poly, BoxSize).save(output_folder+"HI_field_poly_TNG300_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i"%(BoxSize,nbar,zout,seed))
-
-print ("time taken %.1f sec."%(time.time()-start))
+print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 ################
 ### Plotting ###
 ################
 
 if plot:
+	print ('Plotting and computing power spectra ... ')
 	# load
 	HI_field_poly = BigFileMesh(output_folder+"HI_field_poly_TNG300_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i"%(BoxSize,nbar,zout,seed), dataset='Field')
 
@@ -100,3 +114,7 @@ if plot:
 	if save_outputs:
 		plt.savefig(output_folder + "Pks_L_%.1f_nbar_%.1f_zout_%.1f_seed_%i.pdf"%(BoxSize,nbar,zout,seed))
 	plt.close()
+	print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
+
+print ("Total time taken: %.1f sec."%(time.time()-start))
+
