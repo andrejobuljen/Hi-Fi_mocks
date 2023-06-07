@@ -400,12 +400,10 @@ def reg_grid(Nptcles_per_dim = 20):
 
 
 
-def get_dlin(seed, Nmesh, BoxSize, Pk):
-    pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize)
+def get_dlin(seed, Nmesh, BoxSize, Pk, comm):
+    pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize, comm=comm)
     wn = pm.generate_whitenoise(seed)
-    dlin = wn.apply(lambda k, v:
-                    Pk(sum(ki ** 2 for ki in k)**0.5) ** 0.5 * v / v.BoxSize.prod() ** 0.5)
-    dlin = dlin.c2r()
+    dlin = wn.apply(lambda k, v: Pk(sum(ki ** 2 for ki in k)**0.5) ** 0.5 * v / v.BoxSize.prod() ** 0.5)
     return dlin
 
 # this routine is based on th: 
