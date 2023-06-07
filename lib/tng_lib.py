@@ -370,6 +370,13 @@ def tidal_G2_par(g2field):
     g2par = g2field.apply(par_transfer_function, mode='complex', kind='wavenumber')
     return g2par.compute(mode='real')
 
+def d3_smooth(delta):
+    def smooth(k, v):
+        kk = (k.normp()**0.5)
+        return v*(kk <= 0.5)
+    dk = delta.apply(smooth, mode='complex', kind='wavenumber').compute(mode='real')
+    return dk
+
 def reg_grid(Nptcles_per_dim = 20):
     pmesh = ParticleMesh(BoxSize=BoxSize,Nmesh=[
                                      Nptcles_per_dim,
