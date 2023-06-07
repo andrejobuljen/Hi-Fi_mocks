@@ -5,6 +5,10 @@ from nbodykit.lab import *
 import time
 start = time.time()
 
+comm = CurrentMPIComm.get()    
+print ('comm', comm, 'comm.rank', comm.rank, 'comm.size', comm.size)
+rank = comm.rank
+
 ##########################
 ### General parameters ###
 ##########################
@@ -26,8 +30,7 @@ print ("Generating HI mock in redshift-space at output redshift z=%.0f, in a Box
 		%(zout, BoxSize, nbar, int(nbar*BoxSize**3), Nmesh, seed))
 
 # Cosmology and parameters
-c = cosmology.Planck15
-c = c.match(sigma8=0.8159)
+c = cosmology.Cosmology(h=0.6774, T0_cmb=2.725, Omega0_b=0.0486, Omega0_cdm=0.2603, m_ncdm=[], n_s=0.9667, k_pivot=0.05, A_s=2.055e-9, YHe=0.24)
 Plin_zout = cosmology.LinearPower(c, zout)
 Plin_z0 = cosmology.LinearPower(c, 0)
 Dic  = c.scale_independent_growth_factor(zic)
