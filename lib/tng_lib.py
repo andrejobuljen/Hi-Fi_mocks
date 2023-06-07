@@ -729,7 +729,6 @@ def orthogonalize(d1, d2, dG2, d3):
 
     L = np.linalg.cholesky(C)
     Linv = np.linalg.inv(L)
-    # print ('Linv_shape: ', Linv.shape)
 
     ratio10 = np.sqrt(p2.power['power'].real/p1.power['power'].real)
     ratio20 = np.sqrt(pG2.power['power'].real/p1.power['power'].real)
@@ -745,16 +744,8 @@ def orthogonalize(d1, d2, dG2, d3):
     M31 = Linv[:,3,1]/Linv[:,3,3]*ratio31
     M32 = Linv[:,3,2]/Linv[:,3,3]*ratio32
     
-    kk = p1.power['k']
-
-    M10inter = interp.interp1d(kk, M10, kind='linear', fill_value=(M10[0],M10[-1]), bounds_error=False)
-    M20inter = interp.interp1d(kk, M20, kind='linear', fill_value=(M20[0],M20[-1]), bounds_error=False)
-    M30inter = interp.interp1d(kk, M30, kind='linear', fill_value=(M30[0],M30[-1]), bounds_error=False)
-
-    M21inter = interp.interp1d(kk, M21, kind='linear', fill_value=(M21[0],M21[-1]), bounds_error=False)
-    M31inter = interp.interp1d(kk, M31, kind='linear', fill_value=(M31[0],M31[-1]), bounds_error=False)
-    M32inter = interp.interp1d(kk, M32, kind='linear', fill_value=(M32[0],M32[-1]), bounds_error=False)
-
+    kk = p1.power.coords['k']
+    
     interkmu_M10 = interp1d_manual_k_binning(kk, M10, fill_value=[M10[0],M10[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
     interkmu_M20 = interp1d_manual_k_binning(kk, M20, fill_value=[M20[0],M20[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
     interkmu_M30 = interp1d_manual_k_binning(kk, M30, fill_value=[M30[0],M30[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
@@ -846,7 +837,6 @@ def orthogonalize_rsd(d1, d2, dG2, d3, Nmu):
     C = np.where(np.isnan(C), 0, C)
     L = np.linalg.cholesky(C)
     Linv = np.linalg.inv(L)
-    # print ('Linv_shape: ', Linv.shape)
 
     ratio10 = np.sqrt( p2.power['power'].real/p1.power['power'].real)
     ratio20 = np.sqrt(pG2.power['power'].real/p1.power['power'].real)
@@ -968,6 +958,60 @@ def polynomial_field(d1, d2ort, dG2ort, d3ort, path, zout, p1):
     
     return poly_field
 
+def polynomial_field_zout(d1, d2ort, dG2ort, d3ort, path, zout, p1):
+    # kk = p1.power.coords['k']
+    kk = np.logspace(-3, 0, 1000)
+    
+    # available redshifts
+    z_arr = np.array([0,0.5,1,1.5,2,3,5])
+    b1_poly_z = np.zeros((z_arr.size, kk.size))
+    b2_poly_z = np.zeros((z_arr.size, kk.size))
+    bG2_poly_z = np.zeros((z_arr.size, kk.size))
+    b3_poly_z = np.zeros((z_arr.size, kk.size))
+    
+    assert (zout>0) and (zout<=5)
+
+    for iz, zi in enumerate(z_arr):
+        b1_params = np.loadtxt(path + 'b1_poly_zout_%.1f.txt'%zi, unpack=True)
+        b2_params = np.loadtxt(path + 'b2_poly_zout_%.1f.txt'%zi, unpack=True)
+        bG2_params = np.loadtxt(path + 'bG2_poly_zout_%.1f.txt'%zi, unpack=True)
+        b3_params = np.loadtxt(path + 'b3_poly_zout_%.1f.txt'%zi, unpack=True)
+        
+        b1_poly_z[iz,:] = np.dot(np.array([kk*0+1, kk, kk**2, kk**4]).T, b1_params)
+        b2_poly_z[iz,:] = np.dot(np.array([kk*0+1, kk**2, kk**4]).T, b2_params)
+        bG2_poly_z[iz,:] = np.dot(np.array([kk*0+1, kk**2, kk**4]).T, bG2_params)
+        b3_poly_z[iz,:] = np.dot(np.array([kk*0+1, kk**2, kk**4]).T, b3_params)
+
+    # interpolate along redshifts and take the value at zout       
+    b1_poly_zout = interp.interp1d(z_arr, b1_poly_z, axis=0)(zout)
+    b2_poly_zout = interp.interp1d(z_arr, b2_poly_z, axis=0)(zout)
+    bG2_poly_zout = interp.interp1d(z_arr, bG2_poly_z, axis=0)(zout)
+    b3_poly_zout = interp.interp1d(z_arr, b3_poly_z, axis=0)(zout)
+    
+    # now make a function that interpolates at any k
+    b1_poly = interp.interp1d(kk, b1_poly_zout, bounds_error=False, fill_value=(b1_poly_zout[0],b1_poly_zout[-1]))
+    b2_poly = interp.interp1d(kk, b2_poly_zout, bounds_error=False, fill_value=(b2_poly_zout[0],b2_poly_zout[-1]))
+    bG2_poly = interp.interp1d(kk, bG2_poly_zout, bounds_error=False, fill_value=(bG2_poly_zout[0],bG2_poly_zout[-1]))
+    b3_poly = interp.interp1d(kk, b3_poly_zout, bounds_error=False, fill_value=(b3_poly_zout[0],b3_poly_zout[-1]))
+    
+    # b1_polyinter = interp1d_manual_k_binning(kk, b1_poly, fill_value=[b1_poly[0], b1_poly[-1]], \
+                                             # Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    poly_field   =  d1.apply(lambda k, v: b1_poly( sum(ki ** 2 for ki in k)**0.5) * v)
+    
+    # b2_polyinter = interp1d_manual_k_binning(kk, b2_poly, fill_value=[b2_poly[0], b2_poly[-1]], \
+                                             # Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    poly_field +=  d2ort.apply(lambda k, v: b2_poly( sum(ki ** 2 for ki in k)**0.5) * v)
+    
+    # bG2_polyinter = interp1d_manual_k_binning(kk, bG2_poly, fill_value=[bG2_poly[0], bG2_poly[-1]], \
+                                             # Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    poly_field  +=  dG2ort.apply(lambda k, v: bG2_poly( sum(ki ** 2 for ki in k)**0.5) * v)
+    
+    # b3_polyinter = interp1d_manual_k_binning(kk, b3_poly, fill_value=[b3_poly[0], b3_poly[-1]], \
+                                             # Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    poly_field  +=  d3ort.apply(lambda k, v: b3_poly( sum(ki ** 2 for ki in k)**0.5) * v)
+    
+    return poly_field
+
 def rsd_polynomial_field(dz, d1, d2ort, dG2ort, dG2par, d3ort, path, zout, p1, fout):
 
     b1_params = np.loadtxt(path + 'rsd_b1_poly_zout_%.1f.txt'%zout, unpack=True)
@@ -1047,6 +1091,21 @@ def noise(zout, Nmesh, BoxSize):
 
     def Perr_level(k):
         return np.ones_like(k)*perr_level
+
+    return wn.apply(lambda k, val: Perr_level(sum(ki ** 2 for ki in k)**0.5) ** 0.5 * val / val.BoxSize.prod() ** 0.5)
+
+def noise_zout(zout, Nmesh, BoxSize, path):
+
+    noise_seed = np.random.randint(0,1000000)
+
+    pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize)
+    wn = pm.generate_whitenoise(noise_seed)
+
+    z, perrz = np.loadtxt(path + "z_Perr.txt", unpack=True)
+    perr_zout = np.interp(zout, z, perrz)
+    
+    def Perr_level(k):
+        return np.ones_like(k)*perr_zout
 
     return wn.apply(lambda k, val: Perr_level(sum(ki ** 2 for ki in k)**0.5) ** 0.5 * val / val.BoxSize.prod() ** 0.5)
 
