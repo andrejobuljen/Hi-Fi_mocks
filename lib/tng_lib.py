@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 import numpy as np 
 import matplotlib.pyplot as plt
-from nbodykit.lab import ArrayMesh
+from nbodykit.lab import ArrayMesh, FieldMesh
 from nbodykit.filters import Gaussian
 from nbodykit.source.catalog import UniformCatalog, ArrayCatalog
 from nbodykit import mockmaker
