@@ -959,8 +959,8 @@ def polynomial_field(d1, d2ort, dG2ort, d3ort, path, zout, p1):
     return poly_field
 
 def polynomial_field_zout(d1, d2ort, dG2ort, d3ort, path, zout, p1):
-    # kk = p1.power.coords['k']
-    kk = np.logspace(-3, 0, 1000)
+    kk = p1.power.coords['k']
+#     kk = np.logspace(-3, 0, 1000)
     
     # available redshifts
     z_arr = np.array([0,0.5,1,1.5,2,3,5])
