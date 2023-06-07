@@ -758,21 +758,18 @@ def orthogonalize(d1, d2, dG2, d3):
     interkmu_M31 = interp1d_manual_k_binning(kk, M31, fill_value=[M31[0],M31[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
     interkmu_M32 = interp1d_manual_k_binning(kk, M32, fill_value=[M32[0],M32[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
     
-    test = d1.r2c().apply(lambda k, v: interkmu_M10(sum(ki ** 2 for ki in k)**0.5) * v)
-    d2ort = d2.r2c()+test
-    d2ort = d2ort.c2r()
+    test = d1.apply(lambda k, v: interkmu_M10(sum(ki ** 2 for ki in k)**0.5) * v)
+    d2ort = d2+test
 
-    test = d1.r2c().apply(lambda k, v: interkmu_M20(sum(ki ** 2 for ki in k)**0.5) * v)
-    test2 = d2.r2c().apply(lambda k, v: interkmu_M21(sum(ki ** 2 for ki in k)**0.5) * v)
-    dG2ort = dG2.r2c()+test+test2
-    dG2ort = dG2ort.c2r()
+    test = d1.apply(lambda k, v: interkmu_M20(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M21(sum(ki ** 2 for ki in k)**0.5) * v)
+    dG2ort = dG2+test+test2
 
-    test = d1.r2c().apply(lambda k, v: interkmu_M30(sum(ki ** 2 for ki in k)**0.5) * v)
-    test2 = d2.r2c().apply(lambda k, v: interkmu_M31(sum(ki ** 2 for ki in k)**0.5) * v)
-    testG2 = dG2.r2c().apply(lambda k, v: interkmu_M32(sum(ki ** 2 for ki in k)**0.5) * v)
+    test = d1.apply(lambda k, v: interkmu_M30(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M31(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M32(sum(ki ** 2 for ki in k)**0.5) * v)
 
-    d3ort = d3.r2c()+testG2+test+test2
-    d3ort = d3ort.c2r()
+    d3ort = d3+testG2+test+test2
     del test, test2, testG2
     
     return d2ort, dG2ort, d3ort
