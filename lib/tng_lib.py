@@ -8,6 +8,8 @@ from nbodykit import mockmaker
 from nbodykit.algorithms import FFTPower
 from pmesh.pm import ParticleMesh
 
+from nbodykit.utils import GatherArray
+
 # from collections import OrderedDict
 # import numpy.core.numeric as NX
 import os, sys, time
@@ -67,6 +69,62 @@ def generate_fields(delta_ic, cosmo, nbar, zic, zout, plot=True, weight=True, Rs
     d3 = catalog.to_mesh(value='delta_3', compensated=True).to_real_field()
     return d1, d2, dG2, d3
 
+def generate_fields_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
+    delta_ic = dlin.copy()
+    scale_factor = 1/(1+zout)
+    Nmesh = delta_ic.Nmesh
+    BoxSize = delta_ic.BoxSize[0]
+    prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
+    
+    pos = np.stack(np.meshgrid(*[np.arange(s) for s in Nmesh]),axis=-1).reshape([-1,3])*BoxSize/Nmesh[0] 
+
+    N = pos.shape[0]
+    catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_3', 'f8')])
+    catalog['Position'][:] = pos[:]
+    del pos
+
+    layout = delta_ic.pm.decompose(catalog['Position']) 
+    
+    delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    delta_1 -= np.mean(delta_1)
+    catalog['delta_1'][:] = delta_1[:]
+    del delta_1
+    
+    catalog['delta_2'][:] = catalog['delta_1']**2
+    catalog['delta_2'][:] -= np.mean(catalog['delta_2'])
+    
+    delta_G2 = tidal_G2(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+    catalog['delta_G2'][:] = delta_G2[:]
+    del delta_G2
+    
+    delta_3 = d3_smooth(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')**3*prefactor**3
+    catalog['delta_3'][:] = delta_3[:]
+    del delta_3
+
+    def potential_transfer_function(k, v):
+        k2 = k.normp(zeromode=1)
+        return v / (k2)
+    pot_k = delta_ic.apply(potential_transfer_function, out=Ellipsis)
+
+    displ_catalog = np.empty(N, dtype=[('displ', ('f8',3))])
+    
+    for d in range(3):
+        def force_transfer_function(k, v, d=d):
+            return k[d] * 1j * v
+        force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
+        displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    
+    catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]) % BoxSize
+    del displ_catalog, force_d, pot_k
+    
+    catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
+    
+    d1 = catalog.to_mesh(value='delta_1', compensated=compensate).paint().r2c()
+    d2 = catalog.to_mesh(value='delta_2', compensated=compensate).paint().r2c()
+    dG2 = catalog.to_mesh(value='delta_G2', compensated=compensate).paint().r2c()
+    d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
+    
+    return d1, d2, dG2, d3
 
 def generate_fields_rsd(delta_ic, cosmo, nbar, zic, zout, fout, plot=True, weight=True, Rsmooth=0, seed=1234, Rdelta=0, posgrid='uniform'):
     scale_factor = 1/(1+zout)
