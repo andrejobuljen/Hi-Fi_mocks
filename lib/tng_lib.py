@@ -76,14 +76,12 @@ def generate_fields_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
     BoxSize = delta_ic.BoxSize[0]
     prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
     
-    pos = np.stack(np.meshgrid(*[np.arange(s) for s in Nmesh]),axis=-1).reshape([-1,3])*BoxSize/Nmesh[0] 
-
+    pos = delta_ic.pm.generate_uniform_particle_grid(shift=0)
     N = pos.shape[0]
     catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_3', 'f8')])
     catalog['Position'][:] = pos[:]
-    del pos
-
     layout = delta_ic.pm.decompose(catalog['Position']) 
+    del pos
     
     delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
     delta_1 -= np.mean(delta_1)
