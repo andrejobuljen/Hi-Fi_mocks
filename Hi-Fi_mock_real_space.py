@@ -140,12 +140,12 @@ if plot:
     	pHI = FFTPower.load(pHI_fname)
 
 	# load pHI measurements and interpolate to zout in order to overplot
-	path_to_pHI = '/home/aobulj/data/TNG_fields/New_results'
-	kkload, pHIload = np.loadtxt(path_to_pHI + "/Pk_measurements_real/pHI_zout_0.0.txt", unpack=True)
+	path_to_pHI = './data/measurements/'
+	kkload, pHIload = np.loadtxt(path_to_pHI + "pHI_zout_0.0.txt", unpack=True)
 	z_arr = np.array([0,0.5,1,1.5,2,3,5])
 	pHI_matrix = np.zeros((z_arr.size, kkload.size))
 	for iz, zi in enumerate(z_arr):
-		kkload, pHI_matrix[iz, :] = np.loadtxt(path_to_pHI + "/Pk_measurements_real/pHI_zout_%.1f.txt"%zi, unpack=True)
+		kkload, pHI_matrix[iz, :] = np.loadtxt(path_to_pHI + "pHI_zout_%.1f.txt"%zi, unpack=True)
 	phitrue_int = interpolate.interp1d(z_arr, pHI_matrix, axis=0)(zout)
 
 	plt.figure(figsize=(8,5))
