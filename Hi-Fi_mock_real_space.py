@@ -128,7 +128,7 @@ if plot:
 		imshow_kw = dict(interpolation='none', cmap='RdBu_r', vmin=-1, vmax=10, extent=(0,BoxSize,0,BoxSize), origin='lower')
 		cax = plt.imshow(HI_field_poly.apply(Gaussian(R_gaussian)).paint()[0,:,:].T, **imshow_kw)
 		plt.colorbar(cax)
-		plt.title('$\\delta_\\mathrm{HI}^r$ from polynomial fits, $z=%.0f$'%zout)
+		plt.title('$\\delta_\\mathrm{HI}^r$ from polynomial fits, $z=%.1f$'%zout)
 		plt.xlabel("$y\,[h^{-1}\,\\mathrm{Mpc}]$")
 		plt.ylabel("$z\,[h^{-1}\,\\mathrm{Mpc}]$")
 		if save_outputs:
@@ -155,7 +155,7 @@ if plot:
 	plt.xlabel("$k\,[h\,\mathrm{Mpc}^{-1}]$", fontsize=12)
 	plt.ylabel("$P\,[h^{-3}\mathrm{Mpc}^3]$")
 	plt.xlim(right=1)
-	plt.ylim(1e1,1e4)
+	plt.ylim(1e1,5e4)
 	plt.legend(loc=0)
 	if save_outputs:
         	plt.savefig(output_folder + "Pks_L_%.1f_Nmesh_%.1f_zout_%.1f_seed_%i.pdf"%(BoxSize,Nmesh,zout,seed))
