@@ -137,8 +137,8 @@ if plot:
 		plt.close()
 
 	# load Pk
-    	pHI = FFTPower.load(pHI_fname)
-
+	pHI = FFTPower.load(pHI_fname)
+	
 	# load pHI measurements and interpolate to zout in order to overplot
 	path_to_pHI = './data/measurements/'
 	kkload, pHIload = np.loadtxt(path_to_pHI + "pHI_zout_0.0.txt", unpack=True)
