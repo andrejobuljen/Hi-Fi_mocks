@@ -66,8 +66,8 @@ Dout = c.scale_independent_growth_factor(zout)
 params_path = "./data/r_space_bestfit_params/"
 save_outputs = True
 plot = True
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+# if not os.path.exists(output_folder):
+#     os.makedirs(output_folder)
 
 #################
 ### Main part ###
