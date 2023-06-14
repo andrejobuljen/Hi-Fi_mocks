@@ -146,7 +146,7 @@ if plot:
 	plt.figure(figsize=(8,5))
 	plt.loglog(pk.poles['k'], Plin_zout(pk.poles['k']), 'k', label = '$P_{lin}$')
 	for i in range(Nmu0):
-	    plt.loglog(pk.poles['k'], pk.power['power'][:,Nmu0+i].real, 'C0-', alpha=(i+1)/Nmu0, label='$\\mu=%.2f$'%pk.power.coords['mu'][Nmu0+i])
+	    plt.loglog(pHI.poles['k'], pHI.power['power'][:,Nmu0+i].real, 'C0-', alpha=(i+1)/Nmu0, label='$\\mu=%.2f$'%pHI.power.coords['mu'][Nmu0+i])
 # 	    plt.loglog(phitrue.poles['k'], phitrue.power['power'][:,Nmu0+i].real, color='gray', alpha=(i+1)/Nmu0)
 	plt.plot([],[],'gray', label = 'HI true (TNG)')
 	plt.xlabel("$k\,[h\,\mathrm{Mpc}^{-1}]$", fontsize=12)
