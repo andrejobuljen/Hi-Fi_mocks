@@ -1273,6 +1273,45 @@ def noise_kmu(zout, Nmesh, BoxSize, axis, fout, path):
 
     return wn
 
+def noise_kmu_zout(zout, Nmesh, BoxSize, axis, fout, path):
+
+    noise_seed = np.random.randint(0,1000000)
+
+    pm = ParticleMesh([Nmesh,Nmesh,Nmesh], BoxSize)
+    wn = pm.generate_whitenoise(noise_seed)
+    
+    # available redshifts
+    z_arr = np.array([0,0.5,1,1.5,2,3,5])
+    
+    noise_params_z = np.zeros((z_arr.size, 7))
+
+    assert (zout>=0) and (zout<=5)
+    
+    for iz, zi in enumerate(z_arr):
+        noise_params_z[iz,:] = np.loadtxt(path+'Perr_polyfit_zout_%.1f.txt'%zi, unpack=True)
+
+    # interpolate along redshifts and take the value at zout       
+    noise_params_zout = interp.interp1d(z_arr, noise_params_z, axis=0)(zout)
+    a0, a2, a3, a4, a22, a33, a44 = noise_params_zout
+
+    los = np.zeros(3, dtype=int)
+    los[axis]=1    
+
+    def Perr_kmu_model(k,mu):
+        return a0 + a2*k**2 + a3*k**3 + a4*k**4 + a22*(k*mu)**2 + a33*(k*mu)**3 + a44*(k*mu)**4
+
+    def Perr_kmu_function(k3vec, val):
+        absk = (sum(ki**2 for ki in k3vec))**0.5
+        with np.errstate(invalid='ignore',
+                         divide='ignore'):
+            mu = sum(k3vec[i] * los[i] for i in range(3)) / absk
+        return Perr_kmu_model(absk, mu)**0.5 * val / val.BoxSize.prod() ** 0.5
+
+    wn = wn.apply(Perr_kmu_function, kind='wavenumber')
+    wn[np.isnan(wn)]=0+0j
+
+    return wn
+
 def _noise_kmu_(zout, Nmesh, BoxSize, axis, fout, path):
 
     noise_seed = np.random.randint(0,1000000)
