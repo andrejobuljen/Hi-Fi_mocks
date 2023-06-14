@@ -106,7 +106,7 @@ print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 print ('Saving HI field... ')
 out_fname = output_folder+"rsd_HI_field_poly_L_%.1f_Nmesh_%.1f_zout_%.1f_seed_%i"%(BoxSize,Nmesh,zout,seed)
-if save_outputs: FieldMesh(HI_field_poly).save(output_folder+)
+if save_outputs: FieldMesh(HI_field_poly).save(out_fname)
 print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # compute Pks
