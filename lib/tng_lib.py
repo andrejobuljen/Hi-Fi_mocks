@@ -967,27 +967,27 @@ def orthogonalize_rsd(d1, d2, dG2, d3, Nmu):
             mu = sum(k3vec[i] * p1.attrs['los'][i] for i in range(3)) / absk
         return interkmu_M32(absk, mu) * val
 
-    M10d1 = d1.r2c().apply(rsd_filter_M10, kind='wavenumber')
+    M10d1 = d1.apply(rsd_filter_M10, kind='wavenumber')
     M10d1[np.isnan(M10d1)]=0+0j
 
-    M20d1 = d1.r2c().apply(rsd_filter_M20, kind='wavenumber')
+    M20d1 = d1.apply(rsd_filter_M20, kind='wavenumber')
     M20d1[np.isnan(M20d1)]=0+0j
 
-    M21d2 = d2.r2c().apply(rsd_filter_M21, kind='wavenumber')
+    M21d2 = d2.apply(rsd_filter_M21, kind='wavenumber')
     M21d2[np.isnan(M21d2)]=0+0j
 
-    M30d1 = d1.r2c().apply(rsd_filter_M30, kind='wavenumber')
+    M30d1 = d1.apply(rsd_filter_M30, kind='wavenumber')
     M30d1[np.isnan(M30d1)]=0+0j
 
-    M31d2 = d2.r2c().apply(rsd_filter_M31, kind='wavenumber')
+    M31d2 = d2.apply(rsd_filter_M31, kind='wavenumber')
     M31d2[np.isnan(M31d2)]=0+0j
 
-    M32dG2 = dG2.r2c().apply(rsd_filter_M32, kind='wavenumber')
+    M32dG2 = dG2.apply(rsd_filter_M32, kind='wavenumber')
     M32dG2[np.isnan(M32dG2)]=0+0j
 
-    d2ort  = d2  + M10d1.c2r()
-    dG2ort = dG2 + M21d2.c2r() + M20d1.c2r()
-    d3ort  = d3  + M30d1.c2r() + M31d2.c2r() + M32dG2.c2r()
+    d2ort  = d2  + M10d1
+    dG2ort = dG2 + M21d2 + M20d1
+    d3ort  = d3  + M30d1 + M31d2 + M32dG2
 
     return d2ort, dG2ort, d3ort
 
