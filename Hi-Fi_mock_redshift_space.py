@@ -131,7 +131,7 @@ if plot:
 		imshow_kw = dict(interpolation='none', cmap='RdBu_r', vmin=-1, vmax=10, extent=(0,BoxSize,0,BoxSize), origin='lower')
 		cax = plt.imshow(FieldMesh(HI_field_poly).apply(Gaussian(R_gaussian)).paint()[0,:,:].T, **imshow_kw)
 		plt.colorbar(cax)
-		plt.title('$\\delta_\\mathrm{HI}^s$ from polynomial fits, $z=%.0f$'%zout)
+		plt.title('$\\delta_\\mathrm{HI}^s$ from polynomial fits, $z=%.1f$'%zout)
 		plt.xlabel("$y\,[h^{-1}\,\\mathrm{Mpc}]$")
 		plt.ylabel("$z\,[h^{-1}\,\\mathrm{Mpc}]$")
 		if save_outputs:
