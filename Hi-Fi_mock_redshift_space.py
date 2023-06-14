@@ -79,13 +79,13 @@ plot = True
 
 # Generate linear overdensity field at zic
 print ('Generating initial density field... ')
-dlin = get_dlin(seed, Nmesh, BoxSize, Plin_z0)
+dlin = get_dlin(seed, Nmesh, BoxSize, Plin_z0, comm)
 dlin *= Dic
 print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
 # Compute shifted fields
 print ('Computing shifted fields... ')
-dz, d1, d2, dG2, dG2par, d3 = generate_fields_rsd_new(dlin, c, nbar, zic, zout, fout)
+dz, d1, d2, dG2, dG2par, d3 = generate_fields_rsd_new(dlin, c, zic, zout, comm=comm)
 p1 = FFTPower(d1, mode='2d', kmin=kmin, Nmu=Nmufid, poles=[0,2])
 print ('done (elapsed time: %1.f sec.)'%(time.time()-start))
 
