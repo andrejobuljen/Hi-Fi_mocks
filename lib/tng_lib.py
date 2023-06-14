@@ -186,6 +186,70 @@ def generate_fields_rsd(delta_ic, cosmo, nbar, zic, zout, fout, plot=True, weigh
 
     return dz, d1, d2, dG2, dG2par, d3
 
+def generate_fields_rsd_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
+    delta_ic = dlin.copy()
+    scale_factor = 1/(1+zout)
+    Nmesh = delta_ic.Nmesh
+    BoxSize = delta_ic.BoxSize[0]
+    prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
+    fout = cosmo.scale_independent_growth_rate(zout)
+
+    pos = delta_ic.pm.generate_uniform_particle_grid(shift=0)
+    N = pos.shape[0]
+    catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_G2_par', 'f8'), ('delta_3', 'f8')])
+    catalog['Position'][:] = pos[:]
+    del pos
+    
+    layout = delta_ic.pm.decompose(catalog['Position']) 
+
+    delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    delta_1 -= np.mean(delta_1)
+    catalog['delta_1'][:] = delta_1[:]
+    del delta_1
+    
+    catalog['delta_2'][:] = catalog['delta_1']**2
+    catalog['delta_2'][:] -= np.mean(catalog['delta_2'])
+    
+    delta_G2 = tidal_G2(FieldMesh(delta_ic))#
+    catalog['delta_G2'][:] = delta_G2.readout(catalog['Position'], layout=layout, resampler='cic')[:]*prefactor**2
+    
+    delta_G2_par = tidal_G2_par(FieldMesh(delta_G2)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+    catalog['delta_G2_par'][:] = delta_G2_par[:]
+    del delta_G2, delta_G2_par
+    
+    delta_3 = d3_smooth(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')**3*prefactor**3
+    catalog['delta_3'][:] = delta_3[:]
+    del delta_3
+    
+    def potential_transfer_function(k, v):
+        k2 = k.normp(zeromode=1)
+        return v / (k2)
+    pot_k = delta_ic.apply(potential_transfer_function, out=Ellipsis)
+
+    displ_catalog = np.empty(N, dtype=[('displ', ('f8',3))])
+    
+    for d in range(3):
+        def force_transfer_function(k, v, d=d):
+            return k[d] * 1j * v
+        force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
+        displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    
+    catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]*[1,1,(1+fout)]) % BoxSize
+    del displ_catalog, force_d, pot_k
+    
+    catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
+    
+    dz = catalog.to_mesh(compensated=compensate).paint()
+    dz -= dz.cmean()
+    dz = dz.r2c()
+    
+    d1 = catalog.to_mesh(value='delta_1', compensated=compensate).paint().r2c()
+    d2 = catalog.to_mesh(value='delta_2', compensated=compensate).paint().r2c()
+    dG2 = catalog.to_mesh(value='delta_G2', compensated=compensate).paint().r2c()
+    dG2par = catalog.to_mesh(value='delta_G2_par', compensated=compensate).paint().r2c()
+    d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
+    return dz, d1, d2, dG2, dG2par, d3
+
 # this routine is taken from here: https://github.com/mschmittfull/lsstools/
 def get_displacement_from_density_rfield(in_density_rfield,
                                          in_density_cfield=None,
@@ -1074,6 +1138,79 @@ def rsd_polynomial_field(dz, d1, d2ort, dG2ort, dG2par, d3ort, path, zout, p1, f
     beta33_poly[np.isnan(beta33_poly)]=0+0j
 
     final_field_poly = dz.r2c() - 3./7.*fout*dG2par.r2c() + beta11_poly + beta22_poly + betaG2G2_poly + beta33_poly
+
+    return final_field_poly
+
+def rsd_polynomial_field_zout(dz, d1, d2ort, dG2ort, dG2par, d3ort, path, zout, p1, fout):
+
+    # available redshifts
+    z_arr = np.array([0,0.5,1,1.5,2,3,5])
+    
+    rsd_b1_params_z = np.zeros((z_arr.size, 6))
+    rsd_b2_params_z = np.zeros((z_arr.size, 5))
+    rsd_bG2_params_z = np.zeros((z_arr.size, 5))
+    rsd_b3_params_z = np.zeros((z_arr.size, 5))
+
+    assert (zout>=0) and (zout<=5)
+    
+    for iz, zi in enumerate(z_arr):
+        rsd_b1_params_z[iz,:] = np.loadtxt(path+'rsd_b1_poly_zout_%.1f.txt'%zi, unpack=True)
+        rsd_b2_params_z[iz,:] = np.loadtxt(path+'rsd_b2_poly_zout_%.1f.txt'%zi, unpack=True)
+        rsd_bG2_params_z[iz,:] = np.loadtxt(path+'rsd_bG2_poly_zout_%.1f.txt'%zi, unpack=True)
+        rsd_b3_params_z[iz,:] = np.loadtxt(path+'rsd_b3_poly_zout_%.1f.txt'%zi, unpack=True)
+        
+    # interpolate along redshifts and take the value at zout       
+    rsd_b1_params_zout = interp.interp1d(z_arr, rsd_b1_params_z, axis=0)(zout)
+    rsd_b2_params_zout = interp.interp1d(z_arr, rsd_b2_params_z, axis=0)(zout)
+    rsd_bG2_params_zout = interp.interp1d(z_arr, rsd_bG2_params_z, axis=0)(zout)
+    rsd_b3_params_zout = interp.interp1d(z_arr, rsd_b3_params_z, axis=0)(zout)
+
+    def rsd_filter_beta1_poly(k3vec, val):
+        absk = (sum(ki**2 for ki in k3vec))**0.5
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mu = sum(k3vec[i] * p1.attrs['los'][i] for i in range(3)) / absk
+        return beta1_poly_interkmu(absk, mu) * val
+
+    def rsd_filter_beta2_poly(k3vec, val):
+        absk = (sum(ki**2 for ki in k3vec))**0.5
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mu = sum(k3vec[i] * p1.attrs['los'][i] for i in range(3)) / absk
+        return beta2_poly_interkmu(absk, mu) * val
+
+    def rsd_filter_betaG2_poly(k3vec, val):
+        absk = (sum(ki**2 for ki in k3vec))**0.5
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mu = sum(k3vec[i] * p1.attrs['los'][i] for i in range(3)) / absk
+        return betaG2_poly_interkmu(absk, mu) * val
+
+    def rsd_filter_beta3_poly(k3vec, val):
+        absk = (sum(ki**2 for ki in k3vec))**0.5
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mu = sum(k3vec[i] * p1.attrs['los'][i] for i in range(3)) / absk
+        return beta3_poly_interkmu(absk, mu) * val
+
+    def beta1_poly_interkmu(k,mu):
+        return np.dot(np.array([np.ones_like(k), k, k**2, k**4, (k*mu)**2, (k*mu)**4]).T, rsd_b1_params_zout).T
+
+    def beta2_poly_interkmu(k,mu):
+        return np.dot(np.array([np.ones_like(k), k**2, k**4, (k*mu)**2, (k*mu)**4]).T, rsd_b2_params_zout).T
+
+    def betaG2_poly_interkmu(k,mu):
+        return np.dot(np.array([np.ones_like(k), k**2, k**4, (k*mu)**2, (k*mu)**4]).T, rsd_bG2_params_zout).T
+
+    def beta3_poly_interkmu(k,mu):
+        return np.dot(np.array([np.ones_like(k), k**2, k**4, (k*mu)**2, (k*mu)**4]).T, rsd_b3_params_zout).T
+
+    beta11_poly = d1.apply(rsd_filter_beta1_poly, kind='wavenumber')
+    beta11_poly[np.isnan(beta11_poly)]=0+0j
+    beta22_poly = d2ort.apply(rsd_filter_beta2_poly, kind='wavenumber')
+    beta22_poly[np.isnan(beta22_poly)]=0+0j
+    betaG2G2_poly = dG2ort.apply(rsd_filter_betaG2_poly, kind='wavenumber')
+    betaG2G2_poly[np.isnan(betaG2G2_poly)]=0+0j
+    beta33_poly = d3ort.apply(rsd_filter_beta3_poly, kind='wavenumber')
+    beta33_poly[np.isnan(beta33_poly)]=0+0j
+
+    final_field_poly = dz - 3./7.*fout*dG2par + beta11_poly + beta22_poly + betaG2G2_poly + beta33_poly
 
     return final_field_poly
 
