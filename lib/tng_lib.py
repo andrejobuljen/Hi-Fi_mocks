@@ -969,7 +969,7 @@ def polynomial_field_zout(d1, d2ort, dG2ort, d3ort, path, zout, p1):
     bG2_poly_z = np.zeros((z_arr.size, kk.size))
     b3_poly_z = np.zeros((z_arr.size, kk.size))
     
-    assert (zout>0) and (zout<=5)
+    assert (zout>=0) and (zout<=5)
 
     for iz, zi in enumerate(z_arr):
         b1_params = np.loadtxt(path + 'b1_poly_zout_%.1f.txt'%zi, unpack=True)
