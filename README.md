@@ -4,9 +4,9 @@ Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 ## About
 
-Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
+Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks for any box size and any redshift between z=0-5. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
 
-## Usage
+## Installation
 
 `Hi-Fi mocks` are based on and require [nbodykit](https://github.com/bccp/nbodykit) package. To install `nbodykit` please follow these [instructions](https://nbodykit.readthedocs.io/en/latest/getting-started/install.html) (preferably using `conda`). Once installed, also install `matplotlib` package by running: `conda install matplotlib` within the `nbodykit` conda environment.
 
@@ -16,6 +16,8 @@ After succesfully installing `nbodykit` and `matplotlib`, download `Hi-Fi mocks`
 
 Then enter the folder `Hi-fi_mocks` and follow the next steps. In order to use this code from outside its folder, add `Hi-Fi mocks` folder to your `PYTHONPATH` by running in terminal: `export PYTHONPATH=/path/to/HI-Fi_mocks:$PYTHONPATH`.
 
+## Usage
+
 To generate HI mock in real space run the following:
 
 ``python Hi-Fi_mock_real_space.py``
@@ -24,9 +26,34 @@ To generate HI mock in redshift space run the following:
 
 ``python Hi-Fi_mock_redshift_space.py``
 
-The parameters for each run: `BoxSize`, `Nmesh`, initial condition (IC) `seed`, resolution `nbar` and output redshift `zout` can be set within the main codes. Note that `zout` is currently limited to z = 0 & 1. Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions. The fits are tuned to scales of TNG300-1 (k range: 0.03-1 h/Mpc). 
+The parameters for each run are the following:
+ - `BoxSize`, size of the box in units [Mpc/h],
+ - `Nmesh`, number of mesh grids per side,
+ - `seed`, initial condition (IC) seed number,
+ - `zout` output redshift between z=0-5,
+ - `output_folder`, name of the output folder where the fields and power spectra are to be stored.
+ 
+These parameters can be specified while running codes in the following way:
 
-For the fiducial parameters (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `nbar=1 (h/Mpc)^3`), each code finishes in ~2 minutes on a modern laptop. The codes output the final HI overdensity field, figure with smoothed overdensity slice and the measured power spectra directly to the `output_folder`.
+``python Hi-Fi_mock_real_space.py --seed=seed --nmesh=Nmesh --boxsize=BoxSize --output_redshift=zout --output_folder='output_folder'``
+
+``python Hi-Fi_mock_redshift_space.py --seed=seed --nmesh=Nmesh --boxsize=BoxSize --output_redshift=zout --output_folder='output_folder'``
+
+The default values of run parameters are set to those of TNG300-1 (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `seed=2695896`), and (`zout=1`).  
+
+Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions tuned to scales in the k range of TNG300-1: 0.03-1 h/Mpc. The transfer function fits are calibrated to TNG300-1 output redshifts z={0,0.5,1,1.5,2,3,5}. The code interpolates transfer functions for other `zout` values.
+
+Note that for larger box sizes a higher grid resoltion is needed which makes the code run slower and requieres more memory. For the default parameters the code finishes in less than 2 minutes on a modern laptop, in serial mode. The codes output final HI overdensity field, figure with smoothed overdensity slice and the measured power spectra directly to the `output_folder`.
+
+### Running the codes in parallel
+
+In order to run the codes in parallel using `N` processors, run the codes in a following way:
+
+``srun -n N python Hi-Fi_mock_real_space.py``
+
+and 
+
+``srun -n N python Hi-Fi_mock_redshift_space.py``.
 
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
