@@ -41,7 +41,7 @@ These parameters can be specified while running codes in the following way:
 
 The default values of run parameters are set to those of TNG300-1 (`BoxSize=205 Mpc/h`, `Nmesh=256^3`, `seed=2695896`), and (`zout=1`).  
 
-Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions tuned to scales in the k range of TNG300-1: 0.03-1 h/Mpc. The transfer function fits are calibrated to TNG300-1 output redshifts z={0,0.5,1,1.5,2,3,5}. The code interpolates transfer functions for other `zout` values.
+Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions tuned to scales in the k range of TNG300-1: 0.03-1 h/Mpc. The transfer function fits are calibrated to the following TNG300-1 output redshifts z=[0,0.5,1,1.5,2,3,5]. The code interpolates transfer functions for other `zout` values.
 
 For default parameters it takes less than 2 minutes on a modern laptop for the codes to finish, and output final HI overdensity field, figure with smoothed overdensity slice and measured power spectra into the `output_folder`. Note that for larger box sizes a higher grid resolution is needed in order to probe small scales, which makes the code run slower and requires more memory. 
 
