@@ -143,16 +143,25 @@ if plot:
 	
 # 	phitrue = FFTPower.load("./data/measurements/pHI_rsd_zout_%.1f"%zout)
 
+	# load pHI measurements and interpolate to zout in order to overplot
+	path_to_pHI = './data/measurements/'
+	kkload, pHIload, _, _ = np.loadtxt(path_to_pHI + "pHI_rsd_zout_0.0.txt", unpack=True)
+	z_arr = np.array([0,0.5,1,1.5,2,3,5])
+	pHI_matrix = np.zeros((z_arr.size, kkload.size, muz.size))
+	for iz, zi in enumerate(z_arr):
+	    kkload, pHI_matrix[iz, :, 0], pHI_matrix[iz,:, 1], pHI_matrix[iz,:,2] = np.loadtxt(path_to_pHI + "pHI_rsd_zout_%.1f.txt"%zi, unpack=True)
+	phitrue_int = interp.interp1d(z_arr, pHI_matrix, axis=0)(zout)
+
 	plt.figure(figsize=(8,5))
 	plt.loglog(pHI.poles['k'], Plin_zout(pHI.poles['k']), 'k', label = '$P_{lin}$')
 	for i in range(Nmu0):
 	    plt.loglog(pHI.poles['k'], pHI.power['power'][:,Nmu0+i].real, 'C0-', alpha=(i+1)/Nmu0, label='$\\mu=%.2f$'%pHI.power.coords['mu'][Nmu0+i])
-# 	    plt.loglog(phitrue.poles['k'], phitrue.power['power'][:,Nmu0+i].real, color='gray', alpha=(i+1)/Nmu0)
-	plt.plot([],[],'gray', label = 'HI true (TNG)')
+	    plt.loglog(kkload, phitrue_int[:,i], color='gray', alpha=(i+1)/Nmu0, label = 'HI from TNG300-1 (for reference)')
+	plt.title("HI at $z=%.1f$"%zout)
 	plt.xlabel("$k\,[h\,\mathrm{Mpc}^{-1}]$", fontsize=12)
 	plt.ylabel("$P\,[h^{-3}\mathrm{Mpc}^3]$")
 	plt.xlim(right=1)
-	plt.ylim(1e1,2e4)
+	plt.ylim(1e1,5e4)
 	plt.legend(loc=0)
 	if save_outputs:
 		plt.savefig(output_folder + "rsd_Pks_L_%.1f_Nmesh_%.1f_zout_%.1f_seed_%i.pdf"%(BoxSize,Nmesh,zout,seed))
