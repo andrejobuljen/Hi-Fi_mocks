@@ -43,17 +43,17 @@ The default values of run parameters are set to those of TNG300-1 (`BoxSize=205 
 
 Based on these given parameters these codes produce HI meshes in real & redshift space using best-fit polynomials for transfer functions tuned to scales in the k range of TNG300-1: 0.03-1 h/Mpc. The transfer function fits are calibrated to TNG300-1 output redshifts z={0,0.5,1,1.5,2,3,5}. The code interpolates transfer functions for other `zout` values.
 
-Note that for larger box sizes a higher grid resoltion is needed which makes the code run slower and requieres more memory. For the default parameters the code finishes in less than 2 minutes on a modern laptop, in serial mode. The codes output final HI overdensity field, figure with smoothed overdensity slice and the measured power spectra directly to the `output_folder`.
+For default parameters it takes less than 2 minutes on a modern laptop for the codes to finish, and output final HI overdensity field, figure with smoothed overdensity slice and measured power spectra into the `output_folder`. Note that for larger box sizes a higher grid resolution is needed in order to probe small scales, which makes the code run slower and requires more memory. 
 
 ### Running the codes in parallel
 
-In order to run the codes in parallel using `N` processors, run the codes in a following way:
+To run `Hi-Fi mocks` in parallel using `N` processors, run the codes in a following way:
 
 ``srun -n N python Hi-Fi_mock_real_space.py``
 
 and 
 
-``srun -n N python Hi-Fi_mock_redshift_space.py``.
+``srun -n N python Hi-Fi_mock_redshift_space.py``. 
 
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
