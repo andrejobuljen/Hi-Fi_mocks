@@ -153,7 +153,7 @@ if plot:
 	plt.figure(figsize=(8,5))
 	plt.loglog(pHI.poles['k'], Plin_zout(pHI.poles['k']), 'k', label = '$P_{lin}$')
 	for i in range(Nmu0):
-	    plt.loglog(pHI.poles['k'], pHI.power['power'][:,Nmu0+i].real, 'C0-', alpha=(i+1)/Nmu0, label='$\\mu=%.2f$'%pHI.power.coords['mu'][Nmu0+i])
+	    plt.loglog(pHI.power.coords['k'], pHI.power['power'][:,Nmu0+i].real, 'C0-', alpha=(i+1)/Nmu0, label='$\\mu=%.2f$'%pHI.power.coords['mu'][Nmu0+i])
 	for i in range(3):
 	    plt.loglog(kkload, phitrue_int[:,i], color='gray', alpha=(i+1)/Nmu0, label = 'HI from TNG300-1 (for reference)')
 	plt.title("HI at $z=%.1f$"%zout)
