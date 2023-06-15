@@ -141,13 +141,11 @@ if plot:
 	pHI = FFTPower.load(pHI_fname)
 	Nmu0 = int(pHI.attrs['Nmu']/2)
 	
-# 	phitrue = FFTPower.load("./data/measurements/pHI_rsd_zout_%.1f"%zout)
-
-	# load pHI measurements and interpolate to zout in order to overplot
+	# load TNG300-1 pHI measurements and interpolate to zout in order to overplot
 	path_to_pHI = './data/measurements/'
-	kkload, pHIload, _, _ = np.loadtxt(path_to_pHI + "pHI_rsd_zout_0.0.txt", unpack=True)
+	kkload, _, _, _ = np.loadtxt(path_to_pHI + "pHI_rsd_zout_0.0.txt", unpack=True)
 	z_arr = np.array([0,0.5,1,1.5,2,3,5])
-	pHI_matrix = np.zeros((z_arr.size, kkload.size, muz.size))
+	pHI_matrix = np.zeros((z_arr.size, kkload.size, 3))
 	for iz, zi in enumerate(z_arr):
 	    kkload, pHI_matrix[iz, :, 0], pHI_matrix[iz,:, 1], pHI_matrix[iz,:,2] = np.loadtxt(path_to_pHI + "pHI_rsd_zout_%.1f.txt"%zi, unpack=True)
 	phitrue_int = interp.interp1d(z_arr, pHI_matrix, axis=0)(zout)
