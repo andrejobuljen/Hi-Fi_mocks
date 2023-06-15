@@ -27,7 +27,7 @@ To generate HI mock in redshift space run the following:
 ``python Hi-Fi_mock_redshift_space.py``
 
 The parameters for each run are the following:
- - `BoxSize`, size of the box in units [Mpc/h],
+ - `BoxSize`, size of the box in units of Mpc/h,
  - `Nmesh`, number of mesh grids per side,
  - `seed`, initial condition (IC) seed number,
  - `zout` output redshift between z=0-5,
