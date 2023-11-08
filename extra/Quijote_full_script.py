@@ -255,6 +255,7 @@ plt.loglog(kk, phbestfit.power['power'].real, 'C0--', label = 'model (cubic bias
 plt.loglog(kk, perr.power['power'].real, 'C1-', label = '$P_\\mathrm{err}$ (Cubic bias)')
 plt.loglog(kk, perr_quad.power['power'].real, 'C1--', label = '$P_{\\rm err}\ \\mathrm{(quad)}$')
 plt.loglog(kk, perr_lin.power['power'].real, 'C1:', label = '$P_{\\rm err}\ \\mathrm{(lin)}$')
+plt.axhline(1/nbar, ls='--', c='gray')
 plt.legend(loc=0, ncol=1, frameon=False)
 plt.title("$z=%.1f$"%zout)
 plt.xlabel("$k\,[h\,\mathrm{Mpc}^{-1}]$", fontsize=12)
