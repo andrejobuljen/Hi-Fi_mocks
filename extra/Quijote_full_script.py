@@ -234,6 +234,7 @@ np.save(output_folder+"best_fit_field_zout_%.1f_grid_Nmesh_%i_sim_%i"%(zout, Nme
 perr_cub = FFTPower(diff_cub, mode='1d', kmin=kmin)
 perr_quad = FFTPower(diff_quad, mode='1d', kmin=kmin)
 perr_lin = FFTPower(diff_lin, mode='1d', kmin=kmin)
+
 plt.figure(figsize=(8,5))
 plt.semilogx(kk, beta1, label = '$\\beta_1$')
 plt.semilogx(kk, beta2, label = '$\\beta_2$')
