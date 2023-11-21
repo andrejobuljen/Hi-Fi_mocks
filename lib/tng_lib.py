@@ -1392,3 +1392,20 @@ def generate_fields_new_growth(dlin, prefactor, zic, zout, comm=None, compensate
     d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
     
     return d1, d2, dG2, d3
+
+def decic(field, n=2):
+    """
+    Computes CIC compensation
+    Adapted from https://github.com/modichirag/21cm_cleaning/blob/1615fea4e2d617bb6ef00770a49698901227daa8/code/utils/features.py#L101
+    
+    """
+    def tf(k):
+        kny = [np.sinc(k[i]*field.attrs['BoxSize'][i]/(2*np.pi*field.attrs['Nmesh'][i])) for i in range(3)]
+        wts = (kny[0]*kny[1]*kny[2])**(-1*n)
+        return wts
+        
+    if field.dtype == 'complex128' or field.dtype == 'complex64':
+        toret = field.apply(lambda k, v: tf(k)*v).c2r()
+    elif field.dtype == 'float32' or field.dtype == 'float64':
+        toret = field.to_real_field().r2c().apply(lambda k, v: tf(k)*v).c2r()
+    return toret
