@@ -47,7 +47,7 @@ output_folder = cmd_args.output_folder + '/'
 # ## General parameters ###
 # #########################
 
-zic  = 99 # Quijote initial redshift
+zic  = 99 # Abacus initial redshift
 kmin = np.pi/BoxSize # kmin used in Pk measurements [h/Mpc]
 
 print ("Generating shifted fields in real-space at output redshift z=%.1f, in a BoxSize L=%.1f on a Nmesh=%i^3 grid..."\
