@@ -9,7 +9,7 @@ Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 ## About
 
-Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks for any box size and any redshift between z=0-5. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
+Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks for any box size and any redshift between z=0-5. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398)/[PRD](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.108.083528). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
 
 ## Installation
 
@@ -59,6 +59,42 @@ To run `Hi-Fi mocks` in parallel using `N` processors, run the codes in a follow
 and 
 
 ``srun -n N python Hi-Fi_mock_redshift_space.py``. 
+
+### References
+
+If you use `Hi-Fi mocks` for your research, please cite
+```sh
+@article{Obuljen:2022cjo,
+    author = "Obuljen, Andrej and Simonovi\'c, Marko and Schneider, Aurel and Feldmann, Robert",
+    title = "{Modeling HI at the field level}",
+    eprint = "2207.12398",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.CO",
+    reportNumber = "CERN-TH-2022-127",
+    doi = "10.1103/PhysRevD.108.083528",
+    journal = "Phys. Rev. D",
+    volume = "108",
+    number = "8",
+    pages = "083528",
+    year = "2023"
+}
+```
+and 
+```sh
+@article{Hand:2017pqn,
+    author = "Hand, Nick and Feng, Yu and Beutler, Florian and Li, Yin and Modi, Chirag and Seljak, Uros and Slepian, Zachary",
+    title = "{nbodykit: an open-source, massively parallel toolkit for large-scale structure}",
+    eprint = "1712.05834",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.IM",
+    doi = "10.3847/1538-3881/aadae0",
+    journal = "Astron. J.",
+    volume = "156",
+    number = "4",
+    pages = "160",
+    year = "2018"
+}
+```
 
 ### Author
 - [Andrej Obuljen](mailto:andrej.obuljen@uzh.ch) (ICS, Zurich)
