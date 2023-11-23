@@ -9,7 +9,7 @@ Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 ## About
 
-Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks for any box size and any redshift between z=0-5. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398)/[PRD](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.108.083528). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
+Codes to produce 3D neutral hydrogen (HI) over-density fields in real and redshift space tuned to HI clustering properties of [Illustris](https://www.tng-project.org) TNG300-1 (L=205 Mpc/h). These codes allow quick and accurate production of HI mocks for any box size and any redshift between z=0-5. This code is accompanying the paper: [arXiv:2207.12398](https://arxiv.org/abs/2207.12398)/[PRD](https://doi.org/10.1103/PhysRevD.108.083528). It is based on the perturbative approach from [Schmittfull+18](https://arxiv.org/abs/1811.10640) & [+19](https://arxiv.org/abs/2012.03334).
 
 ## Installation
 
@@ -63,7 +63,7 @@ and
 ### References
 
 If you use `Hi-Fi mocks` for your research, please cite:
-> Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)]
+> Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://doi.org/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)]
 
 and `nbodykit` paper:
 > Hand et al., *nbodykit: an open-source, massively parallel toolkit for large-scale structure*, [Astron. J., 156, 160 (2018)](https://dx.doi.org/10.3847/1538-3881/aadae0), arXiv:[1712.05834](https://arxiv.org/abs/1712.05834).
