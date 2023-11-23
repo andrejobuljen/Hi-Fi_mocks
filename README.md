@@ -63,8 +63,7 @@ and
 ### References
 
 If you use `Hi-Fi mocks` for your research, please cite:
-> Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://doi.org/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)]
-
+> Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://doi.org/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)
 and `nbodykit` paper:
 > Hand et al., *nbodykit: an open-source, massively parallel toolkit for large-scale structure*, [Astron. J., 156, 160 (2018)](https://dx.doi.org/10.3847/1538-3881/aadae0), arXiv:[1712.05834](https://arxiv.org/abs/1712.05834).
 
