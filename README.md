@@ -4,7 +4,7 @@ Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
 <br />
 <p align="center">
-    <img src="extra/banner.png">
+    <img src="extra/Banner.png">
 </p>
 
 ## About
