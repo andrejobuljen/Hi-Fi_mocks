@@ -1,4 +1,5 @@
 # Hi-Fi mocks
+[![arXiv](https://img.shields.io/badge/arXiv-2207.12398-b31b1b.svg)](https://arxiv.org/abs/2207.12398)
 
 Codes to generate fast HI field-level (Hi-Fi) mocks in real and redshift space.
 
