@@ -124,6 +124,245 @@ def generate_fields_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
     
     return d1, d2, dG2, d3
 
+def generate_fields_new_smooth_cubic(dlin, cosmo, zic, zout, comm=None, compensate=True, Rgsmooth=20):
+    delta_ic = dlin.copy()
+    scale_factor = 1/(1+zout)
+    Nmesh = delta_ic.Nmesh
+    BoxSize = delta_ic.BoxSize[0]
+    prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
+    
+    pos = delta_ic.pm.generate_uniform_particle_grid(shift=0)
+    N = pos.shape[0]
+    catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_3', 'f8'), 
+                                 ('delta_Gamma3', 'f8'), ('delta_G2delta', 'f8'), ('delta_S3', 'f8'), ('delta_G3', 'f8')])
+    catalog['Position'][:] = pos[:]
+    layout = delta_ic.pm.decompose(catalog['Position']) 
+    del pos
+    
+    delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    delta_1 -= np.mean(delta_1)
+    catalog['delta_1'][:] = delta_1[:]
+    
+    catalog['delta_2'][:] = catalog['delta_1']**2
+    catalog['delta_2'][:] -= np.mean(catalog['delta_2'])
+    
+    delta_G2 = tidal_G2(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+    print (np.mean(delta_G2))
+    catalog['delta_G2'][:] = delta_G2[:]
+    catalog['delta_G2delta'][:] = delta_G2[:] * delta_1[:]
+    print ('mean G2 * delta ', np.mean(delta_G2 * delta_1))
+    del delta_1
+    
+    delta_3 = FieldMesh(delta_ic).apply(Gaussian(Rgsmooth)).compute(mode='real').readout(catalog['Position'], layout=layout, resampler='cic')**3*prefactor**3
+    print ('mean delta_3 ', np.mean(delta_3))
+    delta_3 -= np.mean(delta_3)
+    catalog['delta_3'][:] = delta_3[:]
+    print ('mean delta_3 ', np.mean(delta_3))
+    del delta_3
+    
+    delta_ic = FieldMesh(delta_ic).apply(Gaussian(Rgsmooth))
+    
+    delta_Gamma3 = Gamma3(delta_ic).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3        
+    print ('mean delta_Gamma3', np.mean(delta_Gamma3))
+    delta_Gamma3 -= np.mean(delta_Gamma3)
+    catalog['delta_Gamma3'][:] = delta_Gamma3[:]
+    print ('mean delta_Gamma3', np.mean(delta_Gamma3))
+
+    delta_G3 = G3(delta_ic).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+    print ('mean delta_G3', np.mean(delta_G3))
+    delta_G3 -= np.mean(delta_G3)
+    catalog['delta_G3'][:] = delta_G3[:]
+    print ('mean delta_G3', np.mean(delta_G3))
+    
+    delta_S3 = S3(delta_ic).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+    print ('mean delta_S3 ', np.mean(delta_S3))
+    delta_S3 -= np.mean(delta_S3)
+    catalog['delta_S3'][:] = delta_S3[:]
+    print ('mean delta_S3 ', np.mean(delta_S3))
+    del delta_G2, delta_Gamma3, delta_S3, delta_G3
+    
+    def potential_transfer_function(k, v):
+        k2 = k.normp(zeromode=1)
+        return v / (k2)
+    pot_k = dlin.copy().apply(potential_transfer_function, out=Ellipsis)
+
+    displ_catalog = np.empty(N, dtype=[('displ', ('f8',3))])
+    
+    for d in range(3):
+        def force_transfer_function(k, v, d=d):
+            return k[d] * 1j * v
+        force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
+        displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    
+    catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]) % BoxSize
+    del displ_catalog, force_d, pot_k
+    
+    catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
+    
+    d1 = catalog.to_mesh(value='delta_1', compensated=compensate).paint().r2c()
+    d2 = catalog.to_mesh(value='delta_2', compensated=compensate).paint().r2c()
+    dG2 = catalog.to_mesh(value='delta_G2', compensated=compensate).paint().r2c()
+    d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
+    dGamma3 = catalog.to_mesh(value='delta_Gamma3', compensated=compensate).paint().r2c()
+    dG2d = catalog.to_mesh(value='delta_G2delta', compensated=compensate).paint().r2c()
+    dS3 = catalog.to_mesh(value='delta_S3', compensated=compensate).paint().r2c()
+    dG3 = catalog.to_mesh(value='delta_G3', compensated=compensate).paint().r2c()
+    
+    return d1, d2, dG2, d3, dGamma3, dG2d, dS3, dG3
+
+# def generate_fields_new_gamma3(dlin, cosmo, zic, zout, comm=None, compensate=True):
+#     delta_ic = dlin.copy()
+#     scale_factor = 1/(1+zout)
+#     Nmesh = delta_ic.Nmesh
+#     BoxSize = delta_ic.BoxSize[0]
+#     prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
+    
+#     pos = delta_ic.pm.generate_uniform_particle_grid(shift=0)
+#     N = pos.shape[0]
+#     catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_3', 'f8'), 
+#                                  ('delta_Gamma3', 'f8')])
+#     catalog['Position'][:] = pos[:]
+#     layout = delta_ic.pm.decompose(catalog['Position']) 
+#     del pos
+    
+#     delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+#     delta_1 -= np.mean(delta_1)
+#     catalog['delta_1'][:] = delta_1[:]
+#     del delta_1
+    
+#     catalog['delta_2'][:] = catalog['delta_1']**2
+#     catalog['delta_2'][:] -= np.mean(catalog['delta_2'])
+    
+#     delta_G2 = tidal_G2(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+#     print (np.mean(delta_G2))
+#     catalog['delta_G2'][:] = delta_G2[:]
+#     # del delta_G2
+    
+#     delta_3 = d3_smooth(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')**3*prefactor**3
+#     catalog['delta_3'][:] = delta_3[:]
+#     del delta_3
+
+#     delta_G3 = Gamma3(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+#     # delta_G3 -= np.mean(delta_G3)
+#     catalog['delta_Gamma3'][:] = delta_G3[:]
+#     del delta_G2, delta_G3
+
+#     def potential_transfer_function(k, v):
+#         k2 = k.normp(zeromode=1)
+#         return v / (k2)
+#     pot_k = delta_ic.apply(potential_transfer_function, out=Ellipsis)
+
+#     displ_catalog = np.empty(N, dtype=[('displ', ('f8',3))])
+    
+#     for d in range(3):
+#         def force_transfer_function(k, v, d=d):
+#             return k[d] * 1j * v
+#         force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
+#         displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    
+#     catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]) % BoxSize
+#     del displ_catalog, force_d, pot_k
+    
+#     catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
+    
+#     d1 = catalog.to_mesh(value='delta_1', compensated=compensate).paint().r2c()
+#     d2 = catalog.to_mesh(value='delta_2', compensated=compensate).paint().r2c()
+#     dG2 = catalog.to_mesh(value='delta_G2', compensated=compensate).paint().r2c()
+#     d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
+#     dG3 = catalog.to_mesh(value='delta_Gamma3', compensated=compensate).paint().r2c()
+    
+#     return d1, d2, dG2, d3, dG3
+
+# def generate_fields_new_cubic(dlin, cosmo, zic, zout, comm=None, compensate=True, smooth_type=None, smooth_scale=None):
+#     delta_ic = dlin.copy()
+#     scale_factor = 1/(1+zout)
+#     Nmesh = delta_ic.Nmesh
+#     BoxSize = delta_ic.BoxSize[0]
+#     prefactor = cosmo.scale_independent_growth_factor(zout)/cosmo.scale_independent_growth_factor(zic)
+    
+#     pos = delta_ic.pm.generate_uniform_particle_grid(shift=0)
+#     N = pos.shape[0]
+#     catalog = np.empty(N, dtype=[('Position', ('f8', 3)), ('delta_1', 'f8'), ('delta_2', 'f8'), ('delta_G2', 'f8'), ('delta_3', 'f8'), 
+#                                  ('delta_Gamma3', 'f8'), ('delta_G2delta', 'f8'), ('delta_S3', 'f8'), ('delta_G3', 'f8')])
+#     catalog['Position'][:] = pos[:]
+#     layout = delta_ic.pm.decompose(catalog['Position']) 
+#     del pos
+    
+#     delta_1 = delta_ic.c2r().readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+#     delta_1 -= np.mean(delta_1)
+#     catalog['delta_1'][:] = delta_1[:]
+    
+#     catalog['delta_2'][:] = catalog['delta_1']**2
+#     catalog['delta_2'][:] -= np.mean(catalog['delta_2'])
+    
+#     delta_G2 = tidal_G2(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+#     print (np.mean(delta_G2))
+#     catalog['delta_G2'][:] = delta_G2[:]
+#     catalog['delta_G2delta'][:] = delta_G2[:] * delta_1[:]
+#     print ('mean G2 * delta ', np.mean(delta_G2 * delta_1))
+#     del delta_1
+    
+#     delta_3 = d3_smooth(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')**3*prefactor**3
+#     print ('mean delta_3 ', np.mean(delta_3))
+#     delta_3 -= np.mean(delta_3)
+#     catalog['delta_3'][:] = delta_3[:]
+#     print ('mean delta_3 ', np.mean(delta_3))
+#     del delta_3
+
+#     # adding the option to smooth delta before computing Gamma3
+#     if smooth_type=='Top_hat_k' and smooth_scale is not None:
+#         delta_Gamma3 = Gamma3(d3_smooth(FieldMesh(delta_ic), km=smooth_scale, rspace=False)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3        
+#     elif smooth_type=='Gaussian' and smooth_scale is not None:
+#         delta_Gamma3 = Gamma3(FieldMesh(delta_ic).apply(Gaussian(smooth_scale))).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+#     else:
+#         delta_Gamma3 = Gamma3(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3        
+#     print ('mean delta_Gamma3', np.mean(delta_Gamma3))
+#     delta_Gamma3 -= np.mean(delta_Gamma3)
+#     catalog['delta_Gamma3'][:] = delta_Gamma3[:]
+#     print ('mean delta_Gamma3', np.mean(delta_Gamma3))
+
+#     delta_G3 = G3(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+#     print ('mean delta_G3', np.mean(delta_G3))
+#     delta_G3 -= np.mean(delta_G3)
+#     catalog['delta_G3'][:] = delta_G3[:]
+#     print ('mean delta_G3', np.mean(delta_G3))
+    
+#     delta_S3 = S3(FieldMesh(delta_ic)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**3
+#     print ('mean delta_S3 ', np.mean(delta_S3))
+#     delta_S3 -= np.mean(delta_S3)
+#     catalog['delta_S3'][:] = delta_S3[:]
+#     print ('mean delta_S3 ', np.mean(delta_S3))
+#     del delta_G2, delta_Gamma3, delta_S3, delta_G3
+    
+#     def potential_transfer_function(k, v):
+#         k2 = k.normp(zeromode=1)
+#         return v / (k2)
+#     pot_k = delta_ic.apply(potential_transfer_function, out=Ellipsis)
+
+#     displ_catalog = np.empty(N, dtype=[('displ', ('f8',3))])
+    
+#     for d in range(3):
+#         def force_transfer_function(k, v, d=d):
+#             return k[d] * 1j * v
+#         force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
+#         displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
+    
+#     catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]) % BoxSize
+#     del displ_catalog, force_d, pot_k
+    
+#     catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
+    
+#     d1 = catalog.to_mesh(value='delta_1', compensated=compensate).paint().r2c()
+#     d2 = catalog.to_mesh(value='delta_2', compensated=compensate).paint().r2c()
+#     dG2 = catalog.to_mesh(value='delta_G2', compensated=compensate).paint().r2c()
+#     d3 = catalog.to_mesh(value='delta_3', compensated=compensate).paint().r2c()
+#     dGamma3 = catalog.to_mesh(value='delta_Gamma3', compensated=compensate).paint().r2c()
+#     dG2d = catalog.to_mesh(value='delta_G2delta', compensated=compensate).paint().r2c()
+#     dS3 = catalog.to_mesh(value='delta_S3', compensated=compensate).paint().r2c()
+#     dG3 = catalog.to_mesh(value='delta_G3', compensated=compensate).paint().r2c()
+    
+#     return d1, d2, dG2, d3, dGamma3, dG2d, dS3, dG3
+
 def generate_fields_rsd(delta_ic, cosmo, nbar, zic, zout, fout, plot=True, weight=True, Rsmooth=0, seed=1234, Rdelta=0, posgrid='uniform'):
     scale_factor = 1/(1+zout)
     Nmesh = delta_ic.Nmesh
@@ -186,7 +425,7 @@ def generate_fields_rsd(delta_ic, cosmo, nbar, zic, zout, fout, plot=True, weigh
 
     return dz, d1, d2, dG2, dG2par, d3
 
-def generate_fields_rsd_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
+def generate_fields_rsd_new(dlin, cosmo, zic, zout, axis=2, comm=None, compensate=True):
     delta_ic = dlin.copy()
     scale_factor = 1/(1+zout)
     Nmesh = delta_ic.Nmesh
@@ -213,7 +452,7 @@ def generate_fields_rsd_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
     delta_G2 = tidal_G2(FieldMesh(delta_ic))#
     catalog['delta_G2'][:] = delta_G2.readout(catalog['Position'], layout=layout, resampler='cic')[:]*prefactor**2
     
-    delta_G2_par = tidal_G2_par(FieldMesh(delta_G2)).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
+    delta_G2_par = tidal_G2_par(FieldMesh(delta_G2), axis=axis).readout(catalog['Position'], layout=layout, resampler='cic')*prefactor**2
     catalog['delta_G2_par'][:] = delta_G2_par[:]
     del delta_G2, delta_G2_par
     
@@ -233,8 +472,11 @@ def generate_fields_rsd_new(dlin, cosmo, zic, zout, comm=None, compensate=True):
             return k[d] * 1j * v
         force_d = pot_k.apply(force_transfer_function).c2r(out=Ellipsis)
         displ_catalog['displ'][:, d] = force_d.readout(catalog['Position'], layout=layout, resampler='cic')*prefactor
-    
-    catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]*[1,1,(1+fout)]) % BoxSize
+
+    rsd_factor = np.ones(3)
+    rsd_factor[axis] = 1+fout
+    catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:] * rsd_factor) % BoxSize    
+    # catalog['Position'][:] = (catalog['Position'][:] + displ_catalog['displ'][:]*[1,1,(1+fout)]) % BoxSize
     del displ_catalog, force_d, pot_k
     
     catalog = ArrayCatalog(catalog, BoxSize=BoxSize * np.ones(3), Nmesh=Nmesh, comm=comm)
@@ -423,20 +665,216 @@ def tidal_G2(delta):
             del dij_x, dij_k
     return out_rfield
 
-def tidal_G2_par(g2field):
-    # for now only z
+def Gamma3(delta):
+    # formula Gamma3 = -16/63 delta**3 + 8/21 delta * K**2 + 8/21 Kij d_i d_j / nabla^2 (delta**2 - 3/2 K**2) 
+    # Kij = d_i d_j / nabla^2  delta - delta / 3
+    # G2 = (didj/nabla^2 delta)^2 - delta^2
+    # G2 = K^2 - 2/3 delta^2
+    # Gamma3 = 8/21 delta * G2 - 24/63 Kij di dj/nabla^2 G2
+    
+    # Compute
+    delta_r = delta.compute(mode='real')
+    G2 = - delta_r**2
+    Gamma3_field = 0.
+
+    # let's compute G2 again
+
+    # Compute d_ij(x). It's symmetric in i<->j so only compute j>=i.
+    # d_ij = k_ik_j/k^2*basefield(\vk).
+    for idir in range(3):
+        for jdir in range(idir, 3):
+
+            def my_transfer_function(k3vec, val, idir=idir, jdir=jdir):
+                kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
+                kk[kk == 0] = 1
+                return k3vec[idir] * k3vec[jdir] / kk * val
+
+            dij_k = delta.apply(my_transfer_function,
+                                          mode='complex',
+                                          kind='wavenumber')
+            del my_transfer_function
+            # do fft and convert field_mesh to RealField object
+            dij_x = dij_k.compute(mode='real')
+            # if verbose:
+                # rfield_print_info(dij_x, comm, 'd_%d%d: ' % (idir, jdir))
+            # Add \sum_{i,j=0..2} d_ij(\vx)d_ij(\vx)
+            #   = [d_00^2+d_11^2+d_22^2 + 2*(d_01^2+d_02^2+d_12^2)]
+            if jdir == idir:
+                fac = 1.0
+            else:
+                fac = 2.0
+            G2 += fac * dij_x**2
+            del dij_x, dij_k
+            
+    # now let's compute the rest
+    Gamma3_field += 8./21. * delta_r * G2
+
+    for idir in range(3):
+        for jdir in range(idir, 3):
+
+            def my_transfer_function(k3vec, val, idir=idir, jdir=jdir):
+                kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
+                kk[kk == 0] = 1
+                return k3vec[idir] * k3vec[jdir] / kk * val
+
+            Kij_k = delta.apply(my_transfer_function,
+                                          mode='complex',
+                                          kind='wavenumber')
+            
+            DG2ij_k = FieldMesh(G2).apply(my_transfer_function,
+                                          mode='complex',
+                                          kind='wavenumber')
+            # del my_transfer_function
+            # do fft and convert field_mesh to RealField object
+            Kij_x = Kij_k.compute(mode='real')
+            if idir==jdir: 
+                Kij_x -= delta_r/3
+            DG2ij_x = DG2ij_k.compute(mode='real')
+            del Kij_k, DG2ij_k
+
+            if jdir == idir:
+                fac = 1.0
+            else:
+                fac = 2.0
+                
+            Gamma3_field += - fac * 4./7. * Kij_x*DG2ij_x
+
+    return Gamma3_field
+
+def S3(delta):
+    delta_r = delta.compute(mode='real')
+    G2 = - delta_r**2
+    S3_field = 0.
+    # let's compute G2 again
+    # Compute d_ij(x). It's symmetric in i<->j so only compute j>=i.
+    # d_ij = k_ik_j/k^2*basefield(\vk).
+    for idir in range(3):
+        for jdir in range(idir, 3):
+
+            def my_transfer_function(k3vec, val, idir=idir, jdir=jdir):
+                kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
+                kk[kk == 0] = 1
+                return k3vec[idir] * k3vec[jdir] / kk * val
+
+            dij_k = delta.apply(my_transfer_function,
+                                          mode='complex',
+                                          kind='wavenumber')
+            del my_transfer_function
+            # do fft and convert field_mesh to RealField object
+            dij_x = dij_k.compute(mode='real')
+            # if verbose:
+                # rfield_print_info(dij_x, comm, 'd_%d%d: ' % (idir, jdir))
+            # Add \sum_{i,j=0..2} d_ij(\vx)d_ij(\vx)
+            #   = [d_00^2+d_11^2+d_22^2 + 2*(d_01^2+d_02^2+d_12^2)]
+            if jdir == idir:
+                fac = 1.0
+            else:
+                fac = 2.0
+            G2 += fac * dij_x**2
+            del dij_x, dij_k
+    
+    for idir in range(3):
+        print ('idir', idir)
+        def psi2(k3vec, val, idir=idir):
+            kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
+            kk[kk == 0] = 1
+            return k3vec[idir] * 1j / kk * val
+        
+        def grad(k3vec, val, idir=idir):
+            return k3vec[idir] * 1j * val
+        
+        G2_ii_k = FieldMesh(G2).apply(psi2, mode='complex', kind='wavenumber')
+        G2_ii_x = G2_ii_k.compute(mode='real')
+        del G2_ii_k
+        
+        d_i_k  = delta.apply(grad, mode='complex', kind='wavenumber')
+        d_i_x  = d_i_k.compute(mode='real')
+
+        S3_field += G2_ii_x * d_i_x
+
+    return -3./14. * S3_field
+
+def G3(delta):
+    
+    # Compute
+    delta_r = delta.compute(mode='real')
+    G2_field = 0.#-delta_r**2 (this one doesn't have -delta^2)
+    G3_field = -delta_r**3/2
+ 
+    # Compute d_ij(x). It's symmetric in i<->j so only compute j>=i.
+    # d_ij = k_ik_j/k^2*basefield(\vk).
+    dij_x_dict = {}
+    for idir in range(3):
+        for jdir in range(idir, 3):
+
+            def my_transfer_function(k3vec, val, idir=idir, jdir=jdir):
+                kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
+                kk[kk == 0] = 1
+                return k3vec[idir] * k3vec[jdir] * val / kk
+
+            dij_k = delta.apply(my_transfer_function,
+                                          mode='complex',
+                                          kind='wavenumber')
+            del my_transfer_function
+            # do fft and convert field_mesh to RealField object
+            dij_x = dij_k.compute(mode='real')
+            del dij_k
+            if jdir == idir:
+                fac = 1.0
+            else:
+                fac = 2.0
+            G2_field += fac * dij_x**2
+            dij_x_dict[(idir,jdir)] = dij_x
+            del dij_x
+
+    # get j<i by symmetry
+    def get_dij_x(idir, jdir):
+        if jdir>=idir:
+            return dij_x_dict[(idir,jdir)]
+        else:
+            return dij_x_dict[(jdir,idir)]
+
+    # Compute - sum_ijl d_ij(k) d_il(q) d_jl(p)
+    for idir in range(3):
+        for jdir in range(3):
+            for ldir in range(3):
+                G3_field -= (
+                      get_dij_x(idir,jdir)
+                    * get_dij_x(idir,ldir)
+                    * get_dij_x(jdir,ldir) )
+
+    # take out the mean (already close to 0 but still subtract)
+    mymean = G3_field.cmean()
+    # if comm.rank == 0:
+        # print('Subtract mean of G3: %g' % mymean)
+    G3_field -= mymean 
+
+    ###
+
+    # formula G3 = 3/2 (d_i d_j / nabla^2 delta)^2 * delta - (d_i d_j / nabla^2 delta)^3 - delta**3 / 2
+
+    G3_field += 3/2 * G2_field * delta_r
+
+    return G3_field
+
+def tidal_G2_par(g2field, axis=2):
+    # now for any axis, default z
+    print (axis)
     def par_transfer_function(k3vec, val):
         kk = sum(ki**2 for ki in k3vec)  # k^2 on the mesh
         kk[kk == 0] = 1
-        return k3vec[2]**2 / kk * val
+        return k3vec[axis]**2 / kk * val
     g2par = g2field.apply(par_transfer_function, mode='complex', kind='wavenumber')
     return g2par.compute(mode='real')
 
-def d3_smooth(delta):
+def d3_smooth(delta, km=0.5, rspace=True):
     def smooth(k, v):
         kk = (k.normp()**0.5)
-        return v*(kk <= 0.5)
-    dk = delta.apply(smooth, mode='complex', kind='wavenumber').compute(mode='real')
+        return v*(kk <= km)
+    if rspace:
+        dk = delta.apply(smooth, mode='complex', kind='wavenumber').compute(mode='real')
+    else:
+        dk = delta.apply(smooth, mode='complex', kind='wavenumber')    
     return dk
 
 def reg_grid(Nptcles_per_dim = 20):
@@ -836,27 +1274,150 @@ def orthogonalize(d1, d2, dG2, d3):
     
     return d2ort, dG2ort, d3ort
 
-def orthogonalize_rsd(d1, d2, dG2, d3, Nmu):
+def orthogonalize_gamma3(d1, d2, dG2, d3, dg3):
+    
+    kmin = 2*np.pi/d1.BoxSize[0]/2
+    
+    p1  = FFTPower(d1, mode='1d', kmin=kmin)
+    p2  = FFTPower(d2, mode='1d', kmin=kmin)
+    pG2 = FFTPower(dG2, mode='1d', kmin=kmin)
+    p3  = FFTPower(d3, mode='1d', kmin=kmin)
+    pg3  = FFTPower(dg3, mode='1d', kmin=kmin)
+
+    p12 = FFTPower(d1, mode='1d', second=d2, kmin=kmin)
+    p1G2 = FFTPower(d1, mode='1d', second=dG2, kmin=kmin)
+    p13 = FFTPower(d1, mode='1d', second=d3, kmin=kmin)
+    p1g3 = FFTPower(d1, mode='1d', second=dg3, kmin=kmin)
+
+    p2G2 = FFTPower(d2, mode='1d', second=dG2, kmin=kmin)
+    p23 = FFTPower(d2, mode='1d', second=d3, kmin=kmin)
+    p2g3 = FFTPower(d2, mode='1d', second=dg3, kmin=kmin)
+
+    pG23 = FFTPower(dG2, mode='1d', second=d3, kmin=kmin)
+    pG2g3 = FFTPower(dG2, mode='1d', second=dg3, kmin=kmin)
+    
+    p3g3 = FFTPower(d3, mode='1d', second=dg3, kmin=kmin)
+
+    C = np.zeros((p1.power['k'].size,5,5)) + np.nan
+
+    C[:,0,0] = 1.
+    C[:,1,1] = 1.
+    C[:,2,2] = 1.
+    C[:,3,3] = 1.
+    C[:,4,4] = 1.
+
+    C[:,0,1] = p12.power['power'].real /(p1.power['power'].real*p2.power['power'].real)**0.5
+    C[:,0,2] = p1G2.power['power'].real/(p1.power['power'].real*pG2.power['power'].real)**0.5
+    C[:,0,3] = p13.power['power'].real/(p1.power['power'].real*p3.power['power'].real)**0.5
+    C[:,0,4] = p1g3.power['power'].real/(p1.power['power'].real*pg3.power['power'].real)**0.5
+
+    C[:,1,2] = p2G2.power['power'].real/(p2.power['power'].real*pG2.power['power'].real)**0.5
+    C[:,1,3] = p23.power['power'].real/(p2.power['power'].real*p3.power['power'].real)**0.5
+    C[:,1,4] = p2g3.power['power'].real/(p2.power['power'].real*pg3.power['power'].real)**0.5
+
+    C[:,2,3] = pG23.power['power'].real/(pG2.power['power'].real*p3.power['power'].real)**0.5
+    C[:,2,4] = pG2g3.power['power'].real/(pG2.power['power'].real*pg3.power['power'].real)**0.5
+
+    C[:,3,4] = p3g3.power['power'].real/(p3.power['power'].real*pg3.power['power'].real)**0.5
+
+    C[:,1,0] = C[:,0,1]
+    C[:,2,0] = C[:,0,2]
+    C[:,3,0] = C[:,0,3]
+    C[:,4,0] = C[:,0,4]
+
+    C[:,2,1] = C[:,1,2]
+    C[:,3,1] = C[:,1,3]
+    C[:,4,1] = C[:,1,4]
+
+    C[:,3,2] = C[:,2,3]
+    C[:,4,2] = C[:,2,4]
+
+    C[:,4,3] = C[:,3,4]
+
+    L = np.linalg.cholesky(C)
+    Linv = np.linalg.inv(L)
+
+    ratio10 = np.sqrt(p2.power['power'].real/p1.power['power'].real)
+    ratio20 = np.sqrt(pG2.power['power'].real/p1.power['power'].real)
+    ratio30 = np.sqrt(p3.power['power'].real/p1.power['power'].real)
+    ratio40 = np.sqrt(pg3.power['power'].real/p1.power['power'].real)
+    ratio21 = np.sqrt(pG2.power['power'].real/p2.power['power'].real)
+    ratio31 = np.sqrt(p3.power['power'].real/p2.power['power'].real)
+    ratio41 = np.sqrt(pg3.power['power'].real/p2.power['power'].real)
+    ratio32 = np.sqrt(p3.power['power'].real/pG2.power['power'].real)
+    ratio42 = np.sqrt(pg3.power['power'].real/pG2.power['power'].real)
+    ratio43 = np.sqrt(pg3.power['power'].real/p3.power['power'].real)
+
+    M10 = Linv[:,1,0]/Linv[:,1,1]*ratio10
+    M20 = Linv[:,2,0]/Linv[:,2,2]*ratio20
+    M30 = Linv[:,3,0]/Linv[:,3,3]*ratio30
+    M40 = Linv[:,4,0]/Linv[:,4,4]*ratio40
+    M21 = Linv[:,2,1]/Linv[:,2,2]*ratio21
+    M31 = Linv[:,3,1]/Linv[:,3,3]*ratio31
+    M41 = Linv[:,4,1]/Linv[:,4,4]*ratio41
+    M32 = Linv[:,3,2]/Linv[:,3,3]*ratio32
+    M42 = Linv[:,4,2]/Linv[:,4,4]*ratio42
+    M43 = Linv[:,4,3]/Linv[:,4,4]*ratio43
+    
+    kk = p1.power.coords['k']
+    
+    interkmu_M10 = interp1d_manual_k_binning(kk, M10, fill_value=[M10[0],M10[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M20 = interp1d_manual_k_binning(kk, M20, fill_value=[M20[0],M20[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M30 = interp1d_manual_k_binning(kk, M30, fill_value=[M30[0],M30[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M40 = interp1d_manual_k_binning(kk, M40, fill_value=[M40[0],M40[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M21 = interp1d_manual_k_binning(kk, M21, fill_value=[M21[0],M21[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M31 = interp1d_manual_k_binning(kk, M31, fill_value=[M31[0],M31[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M41 = interp1d_manual_k_binning(kk, M41, fill_value=[M41[0],M41[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M32 = interp1d_manual_k_binning(kk, M32, fill_value=[M32[0],M32[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M42 = interp1d_manual_k_binning(kk, M42, fill_value=[M42[0],M42[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M43 = interp1d_manual_k_binning(kk, M43, fill_value=[M43[0],M43[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    
+    test = d1.apply(lambda k, v: interkmu_M10(sum(ki ** 2 for ki in k)**0.5) * v)
+    d2ort = d2+test
+
+    test = d1.apply(lambda k, v: interkmu_M20(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M21(sum(ki ** 2 for ki in k)**0.5) * v)
+    dG2ort = dG2+test+test2
+
+    test = d1.apply(lambda k, v: interkmu_M30(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M31(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M32(sum(ki ** 2 for ki in k)**0.5) * v)
+    d3ort = d3+testG2+test+test2
+
+    test = d1.apply(lambda k, v: interkmu_M40(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M41(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M42(sum(ki ** 2 for ki in k)**0.5) * v)
+    test3 = d3.apply(lambda k, v: interkmu_M43(sum(ki ** 2 for ki in k)**0.5) * v)
+    dg3ort = dg3+test+test2+testG2+test3
+
+    del test, test2, testG2, test3
+    
+    return d2ort, dG2ort, d3ort, dg3ort
+
+def orthogonalize_rsd(d1, d2, dG2, d3, Nmu, axis=2):
+
+    los = np.zeros(3, dtype='int')
+    los[axis] = 1
     
     kmin = 2*np.pi/d1.BoxSize[0]/2
 
-    p1_ref = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin, poles=[0,2])
+    p1_ref = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin, poles=[0,2], los=los)
     kk = p1_ref.poles['k']
 
-    p1 = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin)
-    p1 = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin)
-    p2 = FFTPower(d2, mode='2d', Nmu=Nmu, kmin=kmin)
-    pG2 = FFTPower(dG2, mode='2d', Nmu=Nmu, kmin=kmin)
-    p3 = FFTPower(d3, mode='2d', Nmu=Nmu, kmin=kmin)
+    p1 = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p1 = FFTPower(d1, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p2 = FFTPower(d2, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    pG2 = FFTPower(dG2, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p3 = FFTPower(d3, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
 
-    p12 = FFTPower(d1, second=d2, mode='2d', Nmu=Nmu, kmin=kmin)
-    p1G2 = FFTPower(d1, second=dG2, mode='2d', Nmu=Nmu, kmin=kmin)
-    p13 = FFTPower(d1, second=d3, mode='2d', Nmu=Nmu, kmin=kmin)
+    p12 = FFTPower(d1, second=d2, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p1G2 = FFTPower(d1, second=dG2, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p13 = FFTPower(d1, second=d3, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
 
-    p2G2 = FFTPower(d2, second=dG2, mode='2d', Nmu=Nmu, kmin=kmin)
-    p23 = FFTPower(d2, second=d3, mode='2d', Nmu=Nmu, kmin=kmin)
+    p2G2 = FFTPower(d2, second=dG2, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
+    p23 = FFTPower(d2, second=d3, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
 
-    pG23 = FFTPower(dG2, second=d3, mode='2d', Nmu=Nmu, kmin=kmin)
+    pG23 = FFTPower(dG2, second=d3, mode='2d', Nmu=Nmu, kmin=kmin, los=los)
 
     Nmu0 = int(p1.attrs['Nmu']/2) 
 
@@ -1074,6 +1635,36 @@ def polynomial_field_zout(d1, d2ort, dG2ort, d3ort, path, zout, p1):
                                              # Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
     poly_field  +=  d3ort.apply(lambda k, v: b3_poly( sum(ki ** 2 for ki in k)**0.5) * v)
     
+    return poly_field
+
+def polynomial_field_cnn(d1, d2ort, dG2ort, d3ort, path, zout, p1, b1, b2, bG2):
+    kk = p1.power.coords['k']
+    
+    b1_params = np.loadtxt(path + 'b1_poly_zout_%.1f.txt'%zout, unpack=True)
+    b2_params = np.loadtxt(path + 'b2_poly_zout_%.1f.txt'%zout, unpack=True)
+    bG2_params = np.loadtxt(path + 'bG2_poly_zout_%.1f.txt'%zout, unpack=True)
+    b3_params = np.loadtxt(path + 'b3_poly_zout_%.1f.txt'%zout, unpack=True)
+    
+    b1_params[0] = b1
+    b2_params[0] = b2
+    bG2_params[0] = bG2
+    
+    b1_poly = np.dot(np.array([kk*0+1, kk, kk**2, kk**4]).T, b1_params)
+    b2_poly = np.dot(np.array([kk*0+1, kk**2, kk**4]).T,     b2_params)
+    bG2_poly= np.dot(np.array([kk*0+1, kk**2, kk**4]).T,     bG2_params)
+    b3_poly = np.dot(np.array([kk*0+1, kk**2, kk**4]).T,     b3_params)
+
+    # now make a function that interpolates at any k
+    b1_polyinter = interp.interp1d(kk, b1_poly, bounds_error=False, fill_value=(b1_poly[0],b1_poly[-1]))
+    b2_polyinter = interp.interp1d(kk, b2_poly, bounds_error=False, fill_value=(b2_poly[0],b2_poly[-1]))
+    bG2_polyinter = interp.interp1d(kk, bG2_poly, bounds_error=False, fill_value=(bG2_poly[0],bG2_poly[-1]))
+    b3_polyinter = interp.interp1d(kk, b3_poly, bounds_error=False, fill_value=(b3_poly[0],b3_poly[-1]))
+    
+    poly_field   =  d1.apply(lambda k, v: b1_polyinter( sum(ki ** 2 for ki in k)**0.5) * v)
+    poly_field  +=  d2ort.apply(lambda k, v: b2_polyinter( sum(ki ** 2 for ki in k)**0.5) * v)    
+    poly_field  +=  dG2ort.apply(lambda k, v: bG2_polyinter( sum(ki ** 2 for ki in k)**0.5) * v)
+    poly_field  +=  d3ort.apply(lambda k, v: b3_polyinter( sum(ki ** 2 for ki in k)**0.5) * v)
+        
     return poly_field
 
 def rsd_polynomial_field(dz, d1, d2ort, dG2ort, dG2par, d3ort, path, zout, p1, fout):
@@ -1409,3 +2000,252 @@ def decic(field, n=2):
     elif field.dtype == 'float32' or field.dtype == 'float64':
         toret = field.to_real_field().r2c().apply(lambda k, v: tf(k)*v).c2r()
     return toret
+
+
+def orthogonalize_cubics(d1, d2, dG2, d3, dg3, dG3, dGd, dS3):
+    
+    kmin = 2*np.pi/d1.BoxSize[0]/2
+    
+    p1  = FFTPower(d1, mode='1d', kmin=kmin)
+    p2  = FFTPower(d2, mode='1d', kmin=kmin)
+    pG2 = FFTPower(dG2, mode='1d', kmin=kmin)
+    p3  = FFTPower(d3, mode='1d', kmin=kmin)
+    pg3  = FFTPower(dg3, mode='1d', kmin=kmin)
+    pG3  = FFTPower(dG3, mode='1d', kmin=kmin)
+    pGd  = FFTPower(dGd, mode='1d', kmin=kmin)
+    pS3  = FFTPower(dS3, mode='1d', kmin=kmin)
+
+    p12 = FFTPower(d1, mode='1d', second=d2, kmin=kmin)
+    p1G2 = FFTPower(d1, mode='1d', second=dG2, kmin=kmin)
+    p13 = FFTPower(d1, mode='1d', second=d3, kmin=kmin)
+    p1g3 = FFTPower(d1, mode='1d', second=dg3, kmin=kmin)
+    p1G3 = FFTPower(d1, mode='1d', second=dG3, kmin=kmin)
+    p1Gd = FFTPower(d1, mode='1d', second=dGd, kmin=kmin)
+    p1S3 = FFTPower(d1, mode='1d', second=dS3, kmin=kmin)
+
+    p2G2 = FFTPower(d2, mode='1d', second=dG2, kmin=kmin)
+    p23 = FFTPower(d2, mode='1d', second=d3, kmin=kmin)
+    p2g3 = FFTPower(d2, mode='1d', second=dg3, kmin=kmin)
+    p2G3 = FFTPower(d2, mode='1d', second=dG3, kmin=kmin)
+    p2Gd = FFTPower(d2, mode='1d', second=dGd, kmin=kmin)
+    p2S3 = FFTPower(d2, mode='1d', second=dS3, kmin=kmin)
+
+    pG23 = FFTPower(dG2, mode='1d', second=d3, kmin=kmin)
+    pG2g3 = FFTPower(dG2, mode='1d', second=dg3, kmin=kmin)
+    pG2G3 = FFTPower(dG2, mode='1d', second=dG3, kmin=kmin)
+    pG2Gd = FFTPower(dG2, mode='1d', second=dGd, kmin=kmin)
+    pG2S3 = FFTPower(dG2, mode='1d', second=dS3, kmin=kmin)
+    
+    p3g3 = FFTPower(d3, mode='1d', second=dg3, kmin=kmin)
+    p3G3 = FFTPower(d3, mode='1d', second=dG3, kmin=kmin)
+    p3Gd = FFTPower(d3, mode='1d', second=dGd, kmin=kmin)
+    p3S3 = FFTPower(d3, mode='1d', second=dS3, kmin=kmin)
+
+    pg3G3 = FFTPower(dg3, mode='1d', second=dG3, kmin=kmin)
+    pg3Gd = FFTPower(dg3, mode='1d', second=dGd, kmin=kmin)
+    pg3S3 = FFTPower(dg3, mode='1d', second=dS3, kmin=kmin)
+    
+    pG3Gd = FFTPower(dG3, mode='1d', second=dGd, kmin=kmin)
+    pG3S3 = FFTPower(dG3, mode='1d', second=dS3, kmin=kmin)
+
+    pGdS3 = FFTPower(dGd, mode='1d', second=dS3, kmin=kmin)
+
+    C = np.zeros((p1.power['k'].size,8,8)) + np.nan
+
+    for i in range(8):
+        C[:,i,i] = 1.
+        
+    C[:,0,1] = p12.power['power'].real /(p1.power['power'].real*p2.power['power'].real)**0.5
+    C[:,0,2] = p1G2.power['power'].real/(p1.power['power'].real*pG2.power['power'].real)**0.5
+    C[:,0,3] = p13.power['power'].real/(p1.power['power'].real*p3.power['power'].real)**0.5
+    C[:,0,4] = p1g3.power['power'].real/(p1.power['power'].real*pg3.power['power'].real)**0.5
+    C[:,0,5] = p1G3.power['power'].real/(p1.power['power'].real*pG3.power['power'].real)**0.5
+    C[:,0,6] = p1Gd.power['power'].real/(p1.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,0,7] = p1S3.power['power'].real/(p1.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,1,2] = p2G2.power['power'].real/(p2.power['power'].real*pG2.power['power'].real)**0.5
+    C[:,1,3] = p23.power['power'].real/(p2.power['power'].real*p3.power['power'].real)**0.5
+    C[:,1,4] = p2g3.power['power'].real/(p2.power['power'].real*pg3.power['power'].real)**0.5
+    C[:,1,5] = p2G3.power['power'].real/(p2.power['power'].real*pG3.power['power'].real)**0.5
+    C[:,1,6] = p2Gd.power['power'].real/(p2.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,1,7] = p2S3.power['power'].real/(p2.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,2,3] = pG23.power['power'].real/(pG2.power['power'].real*p3.power['power'].real)**0.5
+    C[:,2,4] = pG2g3.power['power'].real/(pG2.power['power'].real*pg3.power['power'].real)**0.5
+    C[:,2,5] = pG2G3.power['power'].real/(pG2.power['power'].real*pG3.power['power'].real)**0.5
+    C[:,2,6] = pG2Gd.power['power'].real/(pG2.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,2,7] = pG2S3.power['power'].real/(pG2.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,3,4] = p3g3.power['power'].real/(p3.power['power'].real*pg3.power['power'].real)**0.5
+    C[:,3,5] = p3G3.power['power'].real/(p3.power['power'].real*pG3.power['power'].real)**0.5
+    C[:,3,6] = p3Gd.power['power'].real/(p3.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,3,7] = p3S3.power['power'].real/(p3.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,4,5] = pg3G3.power['power'].real/(pg3.power['power'].real*pG3.power['power'].real)**0.5
+    C[:,4,6] = pg3Gd.power['power'].real/(pg3.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,4,7] = pg3S3.power['power'].real/(pg3.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,5,6] = pG3Gd.power['power'].real/(pG3.power['power'].real*pGd.power['power'].real)**0.5
+    C[:,5,7] = pG3S3.power['power'].real/(pG3.power['power'].real*pS3.power['power'].real)**0.5
+
+    C[:,6,7] = pGdS3.power['power'].real/(pGd.power['power'].real*pS3.power['power'].real)**0.5
+
+    for i in range(8):
+        for j in range(i+1, 8):
+            C[:,j,i] = C[:,i,j]
+    
+    L = np.linalg.cholesky(C)
+    Linv = np.linalg.inv(L)
+
+    ratio10 = np.sqrt(p2.power['power'].real/p1.power['power'].real)
+    ratio20 = np.sqrt(pG2.power['power'].real/p1.power['power'].real)
+    ratio30 = np.sqrt(p3.power['power'].real/p1.power['power'].real)
+    ratio40 = np.sqrt(pg3.power['power'].real/p1.power['power'].real)
+    ratio50 = np.sqrt(pG3.power['power'].real/p1.power['power'].real)
+    ratio60 = np.sqrt(pGd.power['power'].real/p1.power['power'].real)
+    ratio70 = np.sqrt(pS3.power['power'].real/p1.power['power'].real)
+
+    ratio21 = np.sqrt(pG2.power['power'].real/p2.power['power'].real)
+    ratio31 = np.sqrt(p3.power['power'].real/p2.power['power'].real)
+    ratio41 = np.sqrt(pg3.power['power'].real/p2.power['power'].real)
+    ratio51 = np.sqrt(pG3.power['power'].real/p2.power['power'].real)
+    ratio61 = np.sqrt(pGd.power['power'].real/p2.power['power'].real)
+    ratio71 = np.sqrt(pS3.power['power'].real/p2.power['power'].real)
+
+    ratio32 = np.sqrt(p3.power['power'].real/pG2.power['power'].real)
+    ratio42 = np.sqrt(pg3.power['power'].real/pG2.power['power'].real)
+    ratio52 = np.sqrt(pG3.power['power'].real/pG2.power['power'].real)
+    ratio62 = np.sqrt(pGd.power['power'].real/pG2.power['power'].real)
+    ratio72 = np.sqrt(pS3.power['power'].real/pG2.power['power'].real)
+    
+    ratio43 = np.sqrt(pg3.power['power'].real/p3.power['power'].real)
+    ratio53 = np.sqrt(pG3.power['power'].real/p3.power['power'].real)
+    ratio63 = np.sqrt(pGd.power['power'].real/p3.power['power'].real)
+    ratio73 = np.sqrt(pS3.power['power'].real/p3.power['power'].real)
+    
+    ratio54 = np.sqrt(pG3.power['power'].real/pg3.power['power'].real)
+    ratio64 = np.sqrt(pGd.power['power'].real/pg3.power['power'].real)
+    ratio74 = np.sqrt(pS3.power['power'].real/pg3.power['power'].real)
+    
+    ratio65 = np.sqrt(pGd.power['power'].real/pG3.power['power'].real)
+    ratio75 = np.sqrt(pS3.power['power'].real/pG3.power['power'].real)
+
+    ratio76 = np.sqrt(pS3.power['power'].real/pGd.power['power'].real)
+
+    M10 = Linv[:,1,0]/Linv[:,1,1]*ratio10
+    M20 = Linv[:,2,0]/Linv[:,2,2]*ratio20
+    M30 = Linv[:,3,0]/Linv[:,3,3]*ratio30
+    M40 = Linv[:,4,0]/Linv[:,4,4]*ratio40
+    M50 = Linv[:,5,0]/Linv[:,5,5]*ratio50
+    M60 = Linv[:,6,0]/Linv[:,6,6]*ratio60
+    M70 = Linv[:,7,0]/Linv[:,7,7]*ratio70
+    
+    M21 = Linv[:,2,1]/Linv[:,2,2]*ratio21
+    M31 = Linv[:,3,1]/Linv[:,3,3]*ratio31
+    M41 = Linv[:,4,1]/Linv[:,4,4]*ratio41
+    M51 = Linv[:,5,1]/Linv[:,5,5]*ratio51
+    M61 = Linv[:,6,1]/Linv[:,6,6]*ratio61
+    M71 = Linv[:,7,1]/Linv[:,7,7]*ratio71
+
+    M32 = Linv[:,3,2]/Linv[:,3,3]*ratio32
+    M42 = Linv[:,4,2]/Linv[:,4,4]*ratio42
+    M52 = Linv[:,5,2]/Linv[:,5,5]*ratio52
+    M62 = Linv[:,6,2]/Linv[:,6,6]*ratio62
+    M72 = Linv[:,7,2]/Linv[:,7,7]*ratio72
+
+    M43 = Linv[:,4,3]/Linv[:,4,4]*ratio43
+    M53 = Linv[:,5,3]/Linv[:,5,5]*ratio53
+    M63 = Linv[:,6,3]/Linv[:,6,6]*ratio63
+    M73 = Linv[:,7,3]/Linv[:,7,7]*ratio73
+    
+    M54 = Linv[:,5,4]/Linv[:,5,5]*ratio54
+    M64 = Linv[:,6,4]/Linv[:,6,6]*ratio64
+    M74 = Linv[:,7,4]/Linv[:,7,7]*ratio74
+
+    M65 = Linv[:,6,5]/Linv[:,6,6]*ratio65
+    M75 = Linv[:,7,5]/Linv[:,7,7]*ratio75
+    
+    M76 = Linv[:,7,6]/Linv[:,7,7]*ratio76
+
+    kk = p1.power.coords['k']
+    
+    interkmu_M10 = interp1d_manual_k_binning(kk, M10, fill_value=[M10[0],M10[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M20 = interp1d_manual_k_binning(kk, M20, fill_value=[M20[0],M20[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M30 = interp1d_manual_k_binning(kk, M30, fill_value=[M30[0],M30[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M40 = interp1d_manual_k_binning(kk, M40, fill_value=[M40[0],M40[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M50 = interp1d_manual_k_binning(kk, M50, fill_value=[M50[0],M50[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M60 = interp1d_manual_k_binning(kk, M60, fill_value=[M60[0],M60[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M70 = interp1d_manual_k_binning(kk, M70, fill_value=[M70[0],M70[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    interkmu_M21 = interp1d_manual_k_binning(kk, M21, fill_value=[M21[0],M21[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M31 = interp1d_manual_k_binning(kk, M31, fill_value=[M31[0],M31[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M41 = interp1d_manual_k_binning(kk, M41, fill_value=[M41[0],M41[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M51 = interp1d_manual_k_binning(kk, M51, fill_value=[M51[0],M51[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M61 = interp1d_manual_k_binning(kk, M61, fill_value=[M61[0],M61[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M71 = interp1d_manual_k_binning(kk, M71, fill_value=[M71[0],M71[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    
+    interkmu_M32 = interp1d_manual_k_binning(kk, M32, fill_value=[M32[0],M32[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M42 = interp1d_manual_k_binning(kk, M42, fill_value=[M42[0],M42[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M52 = interp1d_manual_k_binning(kk, M52, fill_value=[M52[0],M52[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M62 = interp1d_manual_k_binning(kk, M62, fill_value=[M62[0],M62[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M72 = interp1d_manual_k_binning(kk, M72, fill_value=[M72[0],M72[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    interkmu_M43 = interp1d_manual_k_binning(kk, M43, fill_value=[M43[0],M43[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M53 = interp1d_manual_k_binning(kk, M53, fill_value=[M53[0],M53[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M63 = interp1d_manual_k_binning(kk, M63, fill_value=[M63[0],M63[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M73 = interp1d_manual_k_binning(kk, M73, fill_value=[M73[0],M73[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    interkmu_M54 = interp1d_manual_k_binning(kk, M54, fill_value=[M54[0],M54[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M64 = interp1d_manual_k_binning(kk, M64, fill_value=[M64[0],M64[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M74 = interp1d_manual_k_binning(kk, M74, fill_value=[M74[0],M74[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    interkmu_M65 = interp1d_manual_k_binning(kk, M65, fill_value=[M65[0],M65[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+    interkmu_M75 = interp1d_manual_k_binning(kk, M75, fill_value=[M75[0],M75[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    interkmu_M76 = interp1d_manual_k_binning(kk, M76, fill_value=[M76[0],M76[-1]], Ngrid=p1.attrs['Nmesh'], L = p1.attrs['BoxSize'][0], Pkref=p1)
+
+    test = d1.apply(lambda k, v: interkmu_M10(sum(ki ** 2 for ki in k)**0.5) * v)
+    d2ort = d2+test
+
+    test = d1.apply(lambda k, v: interkmu_M20(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M21(sum(ki ** 2 for ki in k)**0.5) * v)
+    dG2ort = dG2+test+test2
+
+    test = d1.apply(lambda k, v: interkmu_M30(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M31(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M32(sum(ki ** 2 for ki in k)**0.5) * v)
+    d3ort = d3+testG2+test+test2
+
+    test = d1.apply(lambda k, v: interkmu_M40(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M41(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M42(sum(ki ** 2 for ki in k)**0.5) * v)
+    # test3 = d3.apply(lambda k, v: interkmu_M43(sum(ki ** 2 for ki in k)**0.5) * v)
+    dg3ort = dg3+test+test2+testG2#+test3
+
+    test = d1.apply(lambda k, v: interkmu_M50(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M51(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M52(sum(ki ** 2 for ki in k)**0.5) * v)
+    # test3 = d3.apply(lambda k, v: interkmu_M53(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testg3 = dg3.apply(lambda k, v: interkmu_M54(sum(ki ** 2 for ki in k)**0.5) * v)
+    dG3ort = dG3+test+test2+testG2#+test3#+testg3
+
+    test = d1.apply(lambda k, v: interkmu_M60(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M61(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M62(sum(ki ** 2 for ki in k)**0.5) * v)
+    # test3 = d3.apply(lambda k, v: interkmu_M63(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testg3 = dg3.apply(lambda k, v: interkmu_M64(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testG3 = dG3.apply(lambda k, v: interkmu_M65(sum(ki ** 2 for ki in k)**0.5) * v)
+    dGdort = dGd+test+test2+testG2#+test3#+testg3+testG3
+
+    test = d1.apply(lambda k, v: interkmu_M70(sum(ki ** 2 for ki in k)**0.5) * v)
+    test2 = d2.apply(lambda k, v: interkmu_M71(sum(ki ** 2 for ki in k)**0.5) * v)
+    testG2 = dG2.apply(lambda k, v: interkmu_M72(sum(ki ** 2 for ki in k)**0.5) * v)
+    # test3 = d3.apply(lambda k, v: interkmu_M73(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testg3 = dg3.apply(lambda k, v: interkmu_M74(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testG3 = dG3.apply(lambda k, v: interkmu_M75(sum(ki ** 2 for ki in k)**0.5) * v)
+    # testG2d = dG2d.apply(lambda k, v: interkmu_M76(sum(ki ** 2 for ki in k)**0.5) * v)
+    dS3ort = dS3+test+test2+testG2#+test3#+testg3+testG3+testG2d
+
+    del test, test2, testG2#, test3
+    
+    return d2ort, dG2ort, d3ort, dg3ort, dG3ort, dGdort, dS3ort
