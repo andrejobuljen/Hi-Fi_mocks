@@ -51,7 +51,7 @@ Based on these given parameters these codes produce HI meshes in real & redshift
 
 For default parameters it takes less than 2 minutes on a modern laptop for the codes to finish, and output final HI overdensity field, figure with smoothed overdensity slice and measured power spectra into the `output_folder`. Note that for larger box sizes a higher grid resolution is needed in order to probe small scales, which makes the code run slower and requires more memory. 
 
-### Running the codes in parallel
+### Running the codes in parallel (*not fully tested*)
 
 To run `Hi-Fi mocks` in parallel using `N` processors, run the codes in a following way:
 
@@ -61,13 +61,34 @@ and
 
 ``srun -n N python Hi-Fi_mock_redshift_space.py``. 
 
-### References
+### Citation
 
-If you use `Hi-Fi mocks` for your research, please cite:
-> Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://doi.org/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)
+If you use this code in your research, please cite:
 
-and `nbodykit` paper:
-> Hand et al., *nbodykit: an open-source, massively parallel toolkit for large-scale structure*, [Astron. J., 156, 160 (2018)](https://dx.doi.org/10.3847/1538-3881/aadae0), arXiv:[1712.05834](https://arxiv.org/abs/1712.05834).
+```
+@ARTICLE{2023PhRvD.108h3528O,
+       author = {{Obuljen}, Andrej and {Simonovi{\'c}}, Marko and {Schneider}, Aurel and {Feldmann}, Robert},
+        title = "{Modeling HI at the field level}",
+      journal = {\prd},
+     keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics},
+         year = 2023,
+        month = oct,
+       volume = {108},
+       number = {8},
+          eid = {083528},
+        pages = {083528},
+          doi = {10.1103/PhysRevD.108.083528},
+archivePrefix = {arXiv},
+       eprint = {2207.12398},
+ primaryClass = {astro-ph.CO},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2023PhRvD.108h3528O},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```
+
+<!-- > Obuljen et al., *Modeling HI at the field level*, [Phys.Rev.D 108 (2023) 8](https://doi.org/10.1103/PhysRevD.108.083528), arXiv:[2207.12398](https://arxiv.org/abs/2207.12398)
+
+> Hand et al., *nbodykit: an open-source, massively parallel toolkit for large-scale structure*, [Astron. J., 156, 160 (2018)](https://dx.doi.org/10.3847/1538-3881/aadae0), arXiv:[1712.05834](https://arxiv.org/abs/1712.05834). -->
 
 
 ### Author
