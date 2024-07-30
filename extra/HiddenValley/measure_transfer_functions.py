@@ -31,7 +31,7 @@ output_folder = path + 'results/'
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
-zic  = 99 # Abacus initial redshift
+zic  = 99 # HV initial redshift
 kmin = np.pi/BoxSize # kmin used in Pk measurements [h/Mpc]
 
 # HV cosmology:
